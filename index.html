@@ -16,6 +16,8 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <link rel="manifest" href="./manifest.json" />
+    <link rel="icon" type="image/png" href="./favicon.png" />
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -191,16 +193,17 @@
         height: 150px;
         margin: -75px 0 0 -75px;
         border-radius: 50%;
-        background: rgba(255, 255, 255, 0.18);
-        backdrop-filter: blur(8px);
-        -webkit-backdrop-filter: blur(8px);
+        background: transparent;
         border: 2px solid rgba(255, 255, 255, 0.85);
-        box-shadow: var(--glass-shadow);
+        box-shadow:
+          0 0 10px rgba(0, 0, 0, 0.25),
+          0 0 10px rgba(255, 255, 255, 0.35) inset;
         pointer-events: none;
         transition:
           border-color 0.2s ease,
           box-shadow 0.2s ease;
       }
+
       #leveler::before,
       #leveler::after {
         content: "";
@@ -1090,10 +1093,10 @@
               var c = contours.get(i);
               var area = cv.contourArea(c);
               var ratio = area / total;
-              if (ratio >= 0.01 && ratio <= 0.05) {
+              if (ratio >= 0.0015 && ratio <= 0.08) {
                 var per = cv.arcLength(c, true);
                 var circ = per > 0 ? (4 * Math.PI * area) / (per * per) : 0;
-                if (circ > 0.68) {
+                if (circ > 0.6) {
                   var r = cv.boundingRect(c);
                   var cand = {
                     x: (r.x + r.width / 2) / W,
@@ -1120,9 +1123,63 @@
           }
         }
 
+        /* ---------------- boule mapping (Hough) ---------------- */
+        function detectBoules(canvasEl, jackPx) {
+          // returns array of {x,y,r} in canvasEl pixels (jack excluded)
+          if (!state.cvReady || !window.cv) return [];
+          var cv = window.cv;
+          var SW = 480;
+          var sc = SW / canvasEl.width;
+          var SH = Math.max(1, Math.round(canvasEl.height * sc));
+          var tmp = document.createElement("canvas");
+          tmp.width = SW;
+          tmp.height = SH;
+          tmp.getContext("2d").drawImage(canvasEl, 0, 0, SW, SH);
+          var src = null, gray = null, circles = null;
+          var out = [];
+          try {
+            src = cv.imread(tmp);
+            gray = new cv.Mat();
+            cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+            cv.medianBlur(gray, gray, 5);
+            circles = new cv.Mat();
+            var minR = Math.round(SW * 0.03),
+              maxR = Math.round(SW * 0.22);
+            cv.HoughCircles(
+              gray, circles, cv.HOUGH_GRADIENT, 1,
+              Math.round(SW * 0.07), 110, 32, minR, maxR
+            );
+            for (var i = 0; i < circles.cols; i++) {
+              var x = circles.data32F[i * 3] / sc;
+              var y = circles.data32F[i * 3 + 1] / sc;
+              var r = circles.data32F[i * 3 + 2] / sc;
+              if (jackPx) {
+                var dd = Math.sqrt(
+                  (x - jackPx.x) * (x - jackPx.x) + (y - jackPx.y) * (y - jackPx.y)
+                );
+                if (dd < jackPx.r * 1.4) continue; // that's the jack itself
+              }
+              out.push({ x: x, y: y, r: r });
+            }
+          } catch (e) {
+            /* noop */
+          } finally {
+            [src, gray, circles].forEach(function (m) {
+              if (m && m.delete) { try { m.delete(); } catch (e) {} }
+            });
+          }
+          if (jackPx) {
+            out.forEach(function (b) {
+              b.d = Math.hypot(b.x - jackPx.x, b.y - jackPx.y) - b.r - jackPx.r;
+            });
+            out.sort(function (a, b) { return a.d - b.d; });
+          }
+          return out.slice(0, 8);
+        }
+
         /* ---------------- arrows ---------------- */
         function showArrows(dx, dy, on) {
-          var TH = 0.05;
+          var TH = CENTER_TOL;
           arrows.left.classList.toggle("show", !!on && dx < -TH);
           arrows.right.classList.toggle("show", !!on && dx > TH);
           arrows.up.classList.toggle("show", !!on && dy < -TH);
@@ -1133,8 +1190,11 @@
         }
 
         /* ---------------- main loop ---------------- */
+        var CENTER_TOL = 0.12; // easier to center (12% of frame)
+        var LEVEL_TOL = 6; // degrees — stabilizer corrects the rest
+        var HOLD_MS = 900;
         var lastDetect = 0,
-          detectEvery = 180;
+          detectEvery = 150;
         function loop(ts) {
           requestAnimationFrame(loop);
           if (state.frozen || state.busy) return;
@@ -1142,13 +1202,24 @@
           if (ts - lastDetect > detectEvery) {
             lastDetect = ts;
             var d = detectJack();
-            if (d) state.jack = d;
-            else if (state.jack && ts - (state.jack.ts || 0) > 900) state.jack = null;
-            if (d) d.ts = ts;
+            if (d) {
+              d.ts = ts;
+              // smooth to reduce jitter
+              if (state.jack) {
+                d.x = state.jack.x * 0.45 + d.x * 0.55;
+                d.y = state.jack.y * 0.45 + d.y * 0.55;
+                d.r = state.jack.r * 0.5 + d.r * 0.5;
+              }
+              state.jack = d;
+            } else if (state.jack && ts - (state.jack.ts || 0) > 1200) {
+              state.jack = null;
+            }
           }
 
           var jack = state.jack;
-          var level = Math.abs(state.beta) < 3 && Math.abs(state.gamma) < 3 && state.gyroOK;
+          var level =
+            !state.gyroOK ||
+            (Math.abs(state.beta) < LEVEL_TOL && Math.abs(state.gamma) < LEVEL_TOL);
           leveler.classList.toggle("level", level);
 
           if (!jack) {
@@ -1156,7 +1227,7 @@
             hideArrows();
             countRing.classList.remove("on");
             state.steadySince = 0;
-            setStatus("Mencari Jack...", "search");
+            setStatus(state.cvReady ? "Mencari Jack..." : "Mod manual — tekan Snap", "search");
             return;
           }
 
@@ -1166,7 +1237,7 @@
 
           var dx = jack.x - 0.5,
             dy = jack.y - 0.5;
-          var centered = Math.abs(dx) <= 0.05 && Math.abs(dy) <= 0.05;
+          var centered = Math.abs(dx) <= CENTER_TOL && Math.abs(dy) <= CENTER_TOL;
 
           if (!centered) {
             showArrows(dx, dy, true);
@@ -1180,7 +1251,7 @@
           if (!level) {
             countRing.classList.remove("on");
             state.steadySince = 0;
-            setStatus(state.gyroOK ? "Ratakan Timbang Air" : "Aktifkan sensor di Tetapan", "guide");
+            setStatus("Ratakan Timbang Air", "guide");
             return;
           }
 
@@ -1192,79 +1263,154 @@
           if (!state.steadySince) {
             state.steadySince = ts;
             countRing.classList.add("on");
-          } else if (ts - state.steadySince >= 1500) {
+          } else if (ts - state.steadySince >= HOLD_MS) {
             doSnap();
           }
         }
 
-        /* ---------------- snap ---------------- */
+        /* ---------------- snap + stabilizer + analysis ---------------- */
         function doSnap() {
           if (state.frozen || state.busy || !state.camReady) return;
           state.busy = true;
           countRing.classList.remove("on");
           state.steadySince = 0;
+          setStatus("Menstabil & menganalisis...", "guide");
 
           var vw = video.videoWidth || 1280,
             vh = video.videoHeight || 720;
-          var rect = video.getBoundingClientRect();
           freeze.width = vw;
           freeze.height = vh;
 
-          fctx.filter = "brightness(1.08) contrast(1.18) saturate(1.05)";
+          // --- STABILIZER: recentre on jack + level the horizon (no stretching) ---
+          var jx = state.jack ? state.jack.x * vw : vw / 2;
+          var jy = state.jack ? state.jack.y * vh : vh / 2;
+          var rot = 0;
+          if (state.gyroOK) {
+            rot = Math.max(-12, Math.min(12, state.gamma)) * (Math.PI / 180);
+          }
+          var shiftX = vw / 2 - jx,
+            shiftY = vh / 2 - jy;
+          var maxShift = 0.18; // clamp so we never pull in empty edges too much
+          shiftX = Math.max(-vw * maxShift, Math.min(vw * maxShift, shiftX));
+          shiftY = Math.max(-vh * maxShift, Math.min(vh * maxShift, shiftY));
+          var zoom = 1 + maxShift + Math.abs(rot) * 0.6; // cover borders, uniform scale
+
+          fctx.save();
+          fctx.fillStyle = "#000";
+          fctx.fillRect(0, 0, vw, vh);
+          fctx.filter = "brightness(1.06) contrast(1.16) saturate(1.05)";
+          fctx.translate(vw / 2, vh / 2);
+          fctx.rotate(-rot);
+          fctx.scale(zoom, zoom);
+          fctx.translate(-vw / 2 + shiftX, -vh / 2 + shiftY);
           fctx.drawImage(video, 0, 0, vw, vh);
+          fctx.restore();
           fctx.filter = "none";
 
-          // Simulated measurement visualization
+          // Jack now sits at the exact centre of the stabilised frame
           var cx = vw / 2,
             cy = vh / 2;
-          var jr = (state.jack ? state.jack.r : 0.045) * vw;
-          if (jr < 18) jr = Math.max(18, vw * 0.035);
+          var jr = (state.jack ? state.jack.r * vw : vw * 0.04) * zoom;
+          if (jr < vw * 0.02) jr = vw * 0.03;
 
-          fctx.strokeStyle = "rgba(34,224,122,0.95)";
-          fctx.lineWidth = Math.max(3, vw * 0.005);
+          // --- AUTO-MAP boules around the jack ---
+          var boules = detectBoules(freeze, { x: cx, y: cy, r: jr });
+          var mmPerPx = 30 / (2 * jr); // official jack ~30 mm diameter
+
+          var LW = Math.max(3, vw * 0.0042);
+          var fs = Math.max(20, vw * 0.028);
+
+          // jack marker
+          fctx.lineWidth = LW;
+          fctx.strokeStyle = "rgba(255,193,7,0.98)";
           fctx.beginPath();
           fctx.arc(cx, cy, jr, 0, Math.PI * 2);
           fctx.stroke();
-
-          fctx.setLineDash([12, 10]);
-          fctx.strokeStyle = "rgba(0,242,254,0.85)";
-          fctx.beginPath();
-          fctx.arc(cx, cy, jr * 3.4, 0, Math.PI * 2);
-          fctx.stroke();
+          fctx.setLineDash([10, 8]);
+          fctx.strokeStyle = "rgba(0,242,254,0.55)";
+          fctx.lineWidth = Math.max(2, LW * 0.6);
+          [2.2, 3.6, 5].forEach(function (m) {
+            fctx.beginPath();
+            fctx.arc(cx, cy, jr * m, 0, Math.PI * 2);
+            fctx.stroke();
+          });
           fctx.setLineDash([]);
 
-          var bx = cx + jr * 3.0,
-            by = cy - jr * 1.6;
-          fctx.strokeStyle = "rgba(34,224,122,0.95)";
-          fctx.beginPath();
-          fctx.arc(bx, by, jr * 1.5, 0, Math.PI * 2);
-          fctx.stroke();
-          fctx.beginPath();
-          fctx.moveTo(cx, cy);
-          fctx.lineTo(bx, by);
-          fctx.stroke();
-
-          var fs = Math.max(22, vw * 0.035);
           fctx.font = "700 " + fs + "px Poppins, sans-serif";
           fctx.textAlign = "center";
           fctx.textBaseline = "middle";
-          fctx.fillStyle = "rgba(34,224,122,1)";
-          fctx.strokeStyle = "rgba(0,0,0,0.55)";
-          fctx.lineWidth = Math.max(2, fs * 0.12);
-          fctx.strokeText("1", bx, by);
-          fctx.fillText("1", bx, by);
 
+          function tag(text, x, y, color) {
+            var pad = fs * 0.42;
+            var w = fctx.measureText(text).width + pad * 2;
+            var h = fs * 1.5;
+            fctx.fillStyle = "rgba(0,0,0,0.6)";
+            fctx.beginPath();
+            var rr = h / 2;
+            fctx.moveTo(x - w / 2 + rr, y - h / 2);
+            fctx.arcTo(x + w / 2, y - h / 2, x + w / 2, y + h / 2, rr);
+            fctx.arcTo(x + w / 2, y + h / 2, x - w / 2, y + h / 2, rr);
+            fctx.arcTo(x - w / 2, y + h / 2, x - w / 2, y - h / 2, rr);
+            fctx.arcTo(x - w / 2, y - h / 2, x + w / 2, y - h / 2, rr);
+            fctx.closePath();
+            fctx.fill();
+            fctx.fillStyle = color;
+            fctx.fillText(text, x, y);
+          }
+
+          tag("JACK", cx, cy - jr - fs * 1.2, "rgba(255,193,7,1)");
+
+          boules.forEach(function (b, i) {
+            var isClosest = i === 0;
+            var col = isClosest ? "rgba(34,224,122,1)" : "rgba(0,242,254,1)";
+            fctx.strokeStyle = col;
+            fctx.lineWidth = isClosest ? LW * 1.4 : LW;
+            fctx.beginPath();
+            fctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+            fctx.stroke();
+
+            // measuring line jack -> boule edge
+            var ang = Math.atan2(b.y - cy, b.x - cx);
+            fctx.setLineDash(isClosest ? [] : [12, 9]);
+            fctx.beginPath();
+            fctx.moveTo(cx + Math.cos(ang) * jr, cy + Math.sin(ang) * jr);
+            fctx.lineTo(b.x - Math.cos(ang) * b.r, b.y - Math.sin(ang) * b.r);
+            fctx.stroke();
+            fctx.setLineDash([]);
+
+            var mid = {
+              x: (cx + b.x) / 2,
+              y: (cy + b.y) / 2,
+            };
+            var cm = Math.max(0, b.d * mmPerPx) / 10;
+            tag(i + 1 + " · " + cm.toFixed(1) + " cm", mid.x, mid.y, col);
+            tag("#" + (i + 1), b.x, b.y - b.r - fs * 1.1, col);
+          });
+
+          // header + verdict
           fctx.textAlign = "left";
           fctx.fillStyle = "rgba(255,255,255,0.95)";
-          fctx.strokeText("PETANQUE REFEREE PRO", fs * 0.6, fs * 1.1);
-          fctx.fillText("PETANQUE REFEREE PRO", fs * 0.6, fs * 1.1);
+          fctx.strokeStyle = "rgba(0,0,0,0.55)";
+          fctx.lineWidth = Math.max(2, fs * 0.12);
+          fctx.strokeText("PETANQUE REFEREE PRO", fs * 0.7, fs * 1.2);
+          fctx.fillText("PETANQUE REFEREE PRO", fs * 0.7, fs * 1.2);
+          var verdict = boules.length
+            ? "Terdekat: #1 (" + ((boules[0].d * mmPerPx) / 10).toFixed(1) + " cm)"
+            : "Tiada boule dikesan di sekeliling Jack";
+          fctx.strokeText(verdict, fs * 0.7, fs * 2.7);
+          fctx.fillText(verdict, fs * 0.7, fs * 2.7);
 
           freeze.style.display = "block";
           video.classList.add("hidden");
           state.frozen = true;
           state.busy = false;
 
-          setStatus("Keputusan Dianalisis!", "done");
+          setStatus(
+            boules.length
+              ? "Keputusan Dianalisis! " + boules.length + " boule dipetakan"
+              : "Keputusan Dianalisis!",
+            "done"
+          );
           jackMark.style.display = "none";
           hideArrows();
           setResultMode(true);
@@ -1275,8 +1421,8 @@
             toast("Gagal menyimpan rekod.");
           }
           if (navigator.vibrate) navigator.vibrate(60);
-          void rect;
         }
+
 
         function resume() {
           state.frozen = false;
