@@ -9,7 +9,7 @@
     <title>Petanque Referee Pro — Auto Jack Detection &amp; Measure</title>
     <meta
       name="description"
-      content="Professional Petanque referee PWA: automatic jack detection, all-boule tagging, camera guidance, gyroscope leveling, pinch-zoom review and auto-snap measurement."
+      content="Professional Petanque referee PWA: automatic jack detection, camera guidance, gyroscope leveling and auto-snap boule measurement."
     />
     <meta name="theme-color" content="#0056b3" />
     <meta name="mobile-web-app-capable" content="yes" />
@@ -118,13 +118,6 @@
       #grid.off {
         display: none;
       }
-      /* hide live guides while reviewing a frozen result */
-      #stage.result #grid,
-      #stage.result .arrow,
-      #stage.result #leveler,
-      #stage.result #countRing {
-        display: none !important;
-      }
 
       /* ===================== ARROWS ===================== */
       .arrow {
@@ -210,9 +203,7 @@
           border-color 0.2s ease,
           box-shadow 0.2s ease;
       }
-      #leveler.off {
-        display: none;
-      }
+
       #leveler::before,
       #leveler::after {
         content: "";
@@ -454,97 +445,9 @@
         padding: 14px 0;
         font-size: 18px;
       }
-      .btn.sm {
-        padding: 10px 12px;
-        font-size: 12px;
-        border-radius: 12px;
-      }
       .btn[disabled] {
         opacity: 0.55;
         pointer-events: none;
-      }
-
-      /* ===================== RESULT SHEET ===================== */
-      #sheet {
-        position: absolute;
-        z-index: 11;
-        left: 12px;
-        right: 12px;
-        bottom: calc(92px + var(--safe-b));
-        max-height: 46vh;
-        padding: 12px 12px 10px;
-        display: none;
-        flex-direction: column;
-        gap: 8px;
-      }
-      #sheet.on {
-        display: flex;
-      }
-      #sheet .head {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
-      #sheet .title {
-        font-weight: 700;
-        font-size: 14px;
-        color: var(--blue);
-        flex: 1;
-      }
-      #verdict {
-        font-size: 12px;
-        font-weight: 600;
-        color: var(--ink);
-        background: rgba(34, 224, 122, 0.18);
-        border: 1px solid rgba(34, 224, 122, 0.5);
-        border-radius: 10px;
-        padding: 8px 10px;
-        line-height: 1.4;
-      }
-      #rankList {
-        overflow-y: auto;
-        -webkit-overflow-scrolling: touch;
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-      }
-      .rank {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        background: rgba(255, 255, 255, 0.7);
-        border-radius: 12px;
-        padding: 8px 10px;
-        font-size: 13px;
-        font-weight: 600;
-      }
-      .rank .no {
-        width: 26px;
-        height: 26px;
-        flex: 0 0 auto;
-        border-radius: 50%;
-        display: grid;
-        place-items: center;
-        font-size: 12px;
-        font-weight: 700;
-        color: #04364f;
-        background: var(--grad-primary);
-      }
-      .rank.first .no {
-        background: linear-gradient(135deg, #22e07a 0%, #06d6a0 100%);
-      }
-      .rank .d {
-        margin-left: auto;
-        font-variant-numeric: tabular-nums;
-      }
-      .rank .dia {
-        font-size: 11px;
-        color: var(--gray-500);
-        font-weight: 500;
-      }
-      .sheet-actions {
-        display: flex;
-        gap: 8px;
       }
 
       /* ===================== OVERLAY PANELS ===================== */
@@ -568,11 +471,6 @@
         display: flex;
         transform: translateY(0);
         opacity: 1;
-      }
-      .panel .scroll {
-        flex: 1;
-        overflow-y: auto;
-        -webkit-overflow-scrolling: touch;
       }
       .panel h2 {
         margin: 4px 0 4px;
@@ -606,33 +504,6 @@
         font-size: 12px;
         color: var(--gray-500);
         margin-top: 2px;
-      }
-      .seg {
-        display: flex;
-        gap: 6px;
-        margin-top: 10px;
-      }
-      .seg button {
-        flex: 1;
-        border: 1px solid #dfe5ea;
-        background: #f4f7f9;
-        color: var(--gray-500);
-        font-family: inherit;
-        font-weight: 600;
-        font-size: 12px;
-        padding: 10px 6px;
-        border-radius: 10px;
-        cursor: pointer;
-      }
-      .seg button.on {
-        background: var(--grad-primary);
-        color: #04364f;
-        border-color: transparent;
-      }
-      input[type="range"] {
-        width: 100%;
-        margin-top: 12px;
-        accent-color: #0e97c9;
       }
 
       /* iOS toggle */
@@ -677,6 +548,9 @@
       }
 
       #histList {
+        flex: 1;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
         gap: 12px;
@@ -687,7 +561,6 @@
         border-radius: 14px;
         overflow: hidden;
         box-shadow: 0 6px 16px rgba(10, 25, 60, 0.12);
-        cursor: pointer;
       }
       .hist-item img {
         width: 100%;
@@ -702,88 +575,16 @@
         color: var(--gray-500);
         font-weight: 500;
       }
-      .hist-item .meta b {
-        display: block;
-        color: var(--ink);
-        font-size: 12px;
-      }
       .empty {
         text-align: center;
         color: var(--gray-500);
         font-size: 14px;
         padding: 40px 10px;
-        grid-column: 1 / -1;
       }
       .panel-actions {
         display: flex;
         gap: 10px;
         padding-top: 6px;
-      }
-
-      /* ===================== ZOOM VIEWER ===================== */
-      #zv {
-        position: fixed;
-        inset: 0;
-        z-index: 45;
-        background: #05080f;
-        display: none;
-        flex-direction: column;
-      }
-      #zv.open {
-        display: flex;
-      }
-      #zvStage {
-        position: relative;
-        flex: 1;
-        overflow: hidden;
-        touch-action: none;
-        cursor: grab;
-      }
-      #zvImg {
-        position: absolute;
-        top: 0;
-        left: 0;
-        transform-origin: 0 0;
-        will-change: transform;
-        user-select: none;
-        -webkit-user-drag: none;
-        pointer-events: none;
-      }
-      #zvBar {
-        position: absolute;
-        z-index: 2;
-        left: 12px;
-        right: 12px;
-        bottom: calc(14px + var(--safe-b));
-        padding: 10px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
-      #zvPct {
-        font-size: 12px;
-        font-weight: 700;
-        color: var(--blue);
-        min-width: 52px;
-        text-align: center;
-        font-variant-numeric: tabular-nums;
-      }
-      #zvHint {
-        position: absolute;
-        z-index: 2;
-        top: calc(14px + var(--safe-t));
-        left: 50%;
-        transform: translateX(-50%);
-        background: rgba(23, 34, 59, 0.8);
-        color: #fff;
-        font-size: 12px;
-        font-weight: 500;
-        padding: 8px 14px;
-        border-radius: 999px;
-        transition: opacity 0.4s ease;
-      }
-      #zvHint.fade {
-        opacity: 0;
       }
 
       /* ===================== LOADER ===================== */
@@ -883,7 +684,7 @@
       </div>
 
       <div id="topBar" class="glass">
-        <div id="brand">Petanque Referee Pro<span>Auto Measure · Intl Mode</span></div>
+        <div id="brand">Petanque Referee Pro<span>Auto Jack Measure</span></div>
         <div class="spacer"></div>
         <div id="angles">β 0.0°<br />γ 0.0°</div>
       </div>
@@ -891,20 +692,6 @@
       <div id="statusBar" class="glass">
         <div id="statusDot" class="search"></div>
         <div id="statusText">Memuatkan AI...</div>
-      </div>
-
-      <!-- result sheet -->
-      <div id="sheet" class="glass">
-        <div class="head">
-          <div class="title">Keputusan Ukuran</div>
-          <button class="btn sm" id="btnZoom" style="flex: 0 0 auto">🔍 Zoom</button>
-        </div>
-        <div id="verdict"></div>
-        <div id="rankList"></div>
-        <div class="sheet-actions">
-          <button class="btn sm" id="btnRescan">↻ Imbas Lagi (lebih sensitif)</button>
-          <button class="btn sm" id="btnShare" style="flex: 0 0 auto">⤴</button>
-        </div>
       </div>
 
       <div id="dock" class="glass">
@@ -917,73 +704,36 @@
     <!-- ============ SETTINGS ============ -->
     <section class="panel" id="panelSettings">
       <h2>Tetapan</h2>
-      <p class="sub">Konfigurasi bantuan visual, pengesanan dan kalibrasi ukuran.</p>
+      <p class="sub">Konfigurasi bantuan visual dan pengesanan automatik.</p>
 
-      <div class="scroll">
-        <div class="card row">
-          <div>
-            <div class="label">Grid Sepusat</div>
-            <div class="hint">Bulatan putus-putus untuk anggaran jarak.</div>
-          </div>
-          <label class="switch">
-            <input type="checkbox" id="tglGrid" checked />
-            <span class="track"></span><span class="knob"></span>
-          </label>
+      <div class="card row">
+        <div>
+          <div class="label">Grid Sepusat</div>
+          <div class="hint">Bulatan putus-putus untuk anggaran jarak.</div>
         </div>
+        <label class="switch">
+          <input type="checkbox" id="tglGrid" checked />
+          <span class="track"></span><span class="knob"></span>
+        </label>
+      </div>
 
-        <div class="card row">
-          <div>
-            <div class="label">Auto-Snap</div>
-            <div class="hint">Tangkap automatik bila Jack di tengah &amp; rata.</div>
-          </div>
-          <label class="switch">
-            <input type="checkbox" id="tglAuto" checked />
-            <span class="track"></span><span class="knob"></span>
-          </label>
+      <div class="card row">
+        <div>
+          <div class="label">Auto-Snap</div>
+          <div class="hint">Tangkap automatik bila Jack di tengah &amp; rata.</div>
         </div>
+        <label class="switch">
+          <input type="checkbox" id="tglAuto" checked />
+          <span class="track"></span><span class="knob"></span>
+        </label>
+      </div>
 
-        <div class="card row">
-          <div>
-            <div class="label">Timbang Air</div>
-            <div class="hint">Papar gelembung paras pada skrin kamera.</div>
-          </div>
-          <label class="switch">
-            <input type="checkbox" id="tglLevel" checked />
-            <span class="track"></span><span class="knob"></span>
-          </label>
+      <div class="card row">
+        <div>
+          <div class="label">Sensor Gyroscope</div>
+          <div class="hint" id="gyroHint">Ketuk untuk benarkan (iOS).</div>
         </div>
-
-        <div class="card">
-          <div class="row">
-            <div>
-              <div class="label">Sensitiviti Pengesanan</div>
-              <div class="hint" id="sensHint">Tinggi — kesan bola kelabu &amp; jauh.</div>
-            </div>
-          </div>
-          <input type="range" id="rngSens" min="0" max="4" step="1" value="3" />
-        </div>
-
-        <div class="card">
-          <div class="row">
-            <div>
-              <div class="label">Kalibrasi Skala</div>
-              <div class="hint">Rujukan untuk tukar piksel kepada cm.</div>
-            </div>
-          </div>
-          <div class="seg" id="segCal">
-            <button data-cal="auto" class="on">Auto</button>
-            <button data-cal="jack">Jack 30mm</button>
-            <button data-cal="boule">Boule 74mm</button>
-          </div>
-        </div>
-
-        <div class="card row">
-          <div>
-            <div class="label">Sensor Gyroscope</div>
-            <div class="hint" id="gyroHint">Ketuk untuk benarkan (iOS).</div>
-          </div>
-          <button class="btn" id="btnGyro" style="flex: 0 0 auto; width: 120px">Benarkan</button>
-        </div>
+        <button class="btn" id="btnGyro" style="flex: 0 0 auto; width: 120px">Benarkan</button>
       </div>
 
       <div class="panel-actions">
@@ -994,28 +744,13 @@
     <!-- ============ HISTORY ============ -->
     <section class="panel" id="panelHistory">
       <h2>Sejarah Rekod</h2>
-      <p class="sub">Ketuk mana-mana gambar untuk zoom besar (cubit dua jari).</p>
-      <div class="scroll"><div id="histList"></div></div>
+      <p class="sub">Gambar ukuran tersimpan dalam peranti ini.</p>
+      <div id="histList"></div>
       <div class="panel-actions">
         <button class="btn primary" data-close="panelHistory">Kembali ke Kamera</button>
         <button class="btn danger" id="btnClear">Padam Semua</button>
       </div>
     </section>
-
-    <!-- ============ ZOOM VIEWER ============ -->
-    <div id="zv">
-      <div id="zvStage">
-        <img id="zvImg" alt="Pandangan zoom hasil ukuran" />
-      </div>
-      <div id="zvHint">Cubit dua jari untuk zoom · seret untuk gerak · ketuk dua kali reset</div>
-      <div id="zvBar" class="glass">
-        <button class="btn sm icon" id="zvOut" style="width: 46px">−</button>
-        <div id="zvPct">100%</div>
-        <button class="btn sm icon" id="zvIn" style="width: 46px">+</button>
-        <button class="btn sm" id="zvFit">Muat</button>
-        <button class="btn sm primary" id="zvClose">Tutup</button>
-      </div>
-    </div>
 
     <!-- ============ LOADER ============ -->
     <div id="loader">
@@ -1030,7 +765,7 @@
 
     <script>
       /* =========================================================
-         Petanque Referee Pro — vanilla JS (international build)
+         Petanque Referee Pro — vanilla JS
          ========================================================= */
       (function () {
         "use strict";
@@ -1057,15 +792,7 @@
         };
         var btnSnap = $("btnSnap");
 
-        var LS = {
-          grid: "prp.grid",
-          auto: "prp.auto",
-          level: "prp.level",
-          sens: "prp.sens",
-          cal: "prp.cal",
-          hist: "prp.history",
-        };
-
+        var LS = { grid: "prp.grid", auto: "prp.auto", hist: "prp.history" };
         var state = {
           cvReady: false,
           camReady: false,
@@ -1073,13 +800,10 @@
           beta: 0,
           gamma: 0,
           gyroOK: false,
-          jack: null,
+          jack: null, // {x,y,r} in video pixels
           steadySince: 0,
           auto: true,
           busy: false,
-          sens: 3,
-          cal: "auto",
-          last: null, // {img, boules, jack, mmPerPx}
         };
 
         /* ---------------- helpers ---------------- */
@@ -1110,55 +834,17 @@
             localStorage.setItem(key, val ? "1" : "0");
           } catch (e) {}
         }
-        function getStr(key, dflt) {
-          try {
-            var v = localStorage.getItem(key);
-            return v === null ? dflt : v;
-          } catch (e) {
-            return dflt;
-          }
-        }
-        function setStr(key, v) {
-          try {
-            localStorage.setItem(key, v);
-          } catch (e) {}
-        }
-        function clamp(v, a, b) {
-          return v < a ? a : v > b ? b : v;
-        }
 
         /* ---------------- settings ---------------- */
         var tglGrid = $("tglGrid"),
-          tglAuto = $("tglAuto"),
-          tglLevel = $("tglLevel"),
-          rngSens = $("rngSens");
-
-        var SENS_TEXT = [
-          "Rendah — hanya bola jelas.",
-          "Sederhana rendah.",
-          "Seimbang.",
-          "Tinggi — kesan bola kelabu & jauh.",
-          "Maksimum — tag semua yang mungkin bola.",
-        ];
-
+          tglAuto = $("tglAuto");
         function applyGrid() {
           grid.classList.toggle("off", !tglGrid.checked);
         }
-        function applyLevelVis() {
-          leveler.classList.toggle("off", !tglLevel.checked);
-        }
         tglGrid.checked = getBool(LS.grid, true);
         tglAuto.checked = getBool(LS.auto, true);
-        tglLevel.checked = getBool(LS.level, true);
         state.auto = tglAuto.checked;
-        state.sens = parseInt(getStr(LS.sens, "3"), 10);
-        if (isNaN(state.sens)) state.sens = 3;
-        rngSens.value = String(state.sens);
-        $("sensHint").textContent = SENS_TEXT[state.sens];
-        state.cal = getStr(LS.cal, "auto");
         applyGrid();
-        applyLevelVis();
-
         tglGrid.addEventListener("change", function () {
           setBool(LS.grid, tglGrid.checked);
           applyGrid();
@@ -1166,26 +852,6 @@
         tglAuto.addEventListener("change", function () {
           state.auto = tglAuto.checked;
           setBool(LS.auto, state.auto);
-        });
-        tglLevel.addEventListener("change", function () {
-          setBool(LS.level, tglLevel.checked);
-          applyLevelVis();
-        });
-        rngSens.addEventListener("input", function () {
-          state.sens = parseInt(rngSens.value, 10) || 0;
-          $("sensHint").textContent = SENS_TEXT[state.sens];
-          setStr(LS.sens, String(state.sens));
-        });
-        Array.prototype.forEach.call($("segCal").children, function (b) {
-          if (b.getAttribute("data-cal") === state.cal) b.classList.add("on");
-          else b.classList.remove("on");
-          b.addEventListener("click", function () {
-            state.cal = b.getAttribute("data-cal");
-            setStr(LS.cal, state.cal);
-            Array.prototype.forEach.call($("segCal").children, function (o) {
-              o.classList.toggle("on", o === b);
-            });
-          });
         });
 
         /* ---------------- panels ---------------- */
@@ -1224,11 +890,11 @@
             return false;
           }
         }
-        function saveShot(dataUrl, info) {
+        function saveShot(dataUrl) {
           var list = readHistory();
-          list.unshift({ t: Date.now(), img: dataUrl, n: info.n, best: info.best });
+          list.unshift({ t: Date.now(), img: dataUrl });
           while (list.length > 0 && !writeHistory(list)) {
-            list.pop();
+            list.pop(); // quota: drop oldest until it fits
             if (list.length === 0) {
               toast("Storan penuh — rekod tidak disimpan.");
               return;
@@ -1264,6 +930,7 @@
             var e = document.createElement("div");
             e.className = "empty";
             e.textContent = "Tiada rekod lagi. Snap ukuran pertama anda!";
+            e.style.gridColumn = "1 / -1";
             box.appendChild(e);
             return;
           }
@@ -1276,16 +943,9 @@
             img.loading = "lazy";
             var m = document.createElement("div");
             m.className = "meta";
-            var b = document.createElement("b");
-            b.textContent =
-              (it.n ? it.n + " boule" : "Rekod") + (it.best ? " · #1 " + it.best : "");
-            m.appendChild(b);
-            m.appendChild(document.createTextNode(fmt(it.t)));
+            m.textContent = fmt(it.t);
             card.appendChild(img);
             card.appendChild(m);
-            card.addEventListener("click", function () {
-              ZV.open(it.img);
-            });
             box.appendChild(card);
           });
         }
@@ -1298,174 +958,25 @@
           toast("Semua rekod dipadam.");
         });
 
-        /* ---------------- zoom viewer (pinch / wheel / pan) ---------------- */
-        var ZV = (function () {
-          var root = $("zv"),
-            stage = $("zvStage"),
-            img = $("zvImg"),
-            pct = $("zvPct"),
-            hint = $("zvHint");
-          var z = 1,
-            ox = 0,
-            oy = 0,
-            baseW = 0,
-            baseH = 0;
-          var MIN = 1,
-            MAX = 12;
-          var pointers = {},
-            prevDist = 0,
-            prevMid = null,
-            lastTap = 0;
-
-          function apply() {
-            var rect = stage.getBoundingClientRect();
-            var w = baseW * z,
-              h = baseH * z;
-            // keep image inside view when smaller, clamp when bigger
-            ox = w <= rect.width ? (rect.width - w) / 2 : clamp(ox, rect.width - w, 0);
-            oy = h <= rect.height ? (rect.height - h) / 2 : clamp(oy, rect.height - h, 0);
-            img.style.transform =
-              "translate(" + ox.toFixed(2) + "px," + oy.toFixed(2) + "px) scale(" + z + ")";
-            pct.textContent = Math.round(z * 100) + "%";
-          }
-          function fit() {
-            var rect = stage.getBoundingClientRect();
-            var nw = img.naturalWidth || 1,
-              nh = img.naturalHeight || 1;
-            var s = Math.min(rect.width / nw, rect.height / nh);
-            baseW = nw * s;
-            baseH = nh * s;
-            img.style.width = baseW + "px";
-            img.style.height = baseH + "px";
-            z = 1;
-            ox = (rect.width - baseW) / 2;
-            oy = (rect.height - baseH) / 2;
-            apply();
-          }
-          function zoomAt(px, py, k) {
-            var next = clamp(z * k, MIN, MAX);
-            var f = next / z;
-            ox = px - (px - ox) * f;
-            oy = py - (py - oy) * f;
-            z = next;
-            apply();
-          }
-          function rel(e) {
-            var r = stage.getBoundingClientRect();
-            return { x: e.clientX - r.left, y: e.clientY - r.top };
-          }
-
-          stage.addEventListener(
-            "wheel",
-            function (e) {
-              e.preventDefault();
-              var dy = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 100 : 1);
-              var p = rel(e);
-              zoomAt(p.x, p.y, Math.exp(-dy * 0.0018));
-            },
-            { passive: false },
-          );
-
-          stage.addEventListener("pointerdown", function (e) {
-            stage.setPointerCapture(e.pointerId);
-            pointers[e.pointerId] = rel(e);
-            var ids = Object.keys(pointers);
-            if (ids.length === 2) {
-              var a = pointers[ids[0]],
-                b = pointers[ids[1]];
-              prevDist = Math.hypot(a.x - b.x, a.y - b.y);
-              prevMid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
-            } else {
-              var now = Date.now();
-              if (now - lastTap < 300) {
-                var p = rel(e);
-                if (z > 1.2) fit();
-                else zoomAt(p.x, p.y, 3);
-              }
-              lastTap = now;
-            }
-          });
-          stage.addEventListener("pointermove", function (e) {
-            if (!pointers[e.pointerId]) return;
-            var p = rel(e);
-            var ids = Object.keys(pointers);
-            if (ids.length >= 2) {
-              pointers[e.pointerId] = p;
-              var a = pointers[ids[0]],
-                b = pointers[ids[1]];
-              var dist = Math.hypot(a.x - b.x, a.y - b.y);
-              var mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
-              if (prevDist > 0) zoomAt(mid.x, mid.y, dist / prevDist);
-              if (prevMid) {
-                ox += mid.x - prevMid.x;
-                oy += mid.y - prevMid.y;
-                apply();
-              }
-              prevDist = dist;
-              prevMid = mid;
-            } else {
-              var prev = pointers[e.pointerId];
-              ox += p.x - prev.x;
-              oy += p.y - prev.y;
-              pointers[e.pointerId] = p;
-              apply();
-            }
-          });
-          function up(e) {
-            delete pointers[e.pointerId];
-            prevDist = 0;
-            prevMid = null;
-          }
-          stage.addEventListener("pointerup", up);
-          stage.addEventListener("pointercancel", up);
-          stage.addEventListener("pointerleave", up);
-
-          $("zvIn").addEventListener("click", function () {
-            var r = stage.getBoundingClientRect();
-            zoomAt(r.width / 2, r.height / 2, 1.5);
-          });
-          $("zvOut").addEventListener("click", function () {
-            var r = stage.getBoundingClientRect();
-            zoomAt(r.width / 2, r.height / 2, 1 / 1.5);
-          });
-          $("zvFit").addEventListener("click", fit);
-          $("zvClose").addEventListener("click", function () {
-            root.classList.remove("open");
-          });
-          window.addEventListener("resize", function () {
-            if (root.classList.contains("open")) fit();
-          });
-
-          return {
-            open: function (src) {
-              root.classList.add("open");
-              hint.classList.remove("fade");
-              setTimeout(function () {
-                hint.classList.add("fade");
-              }, 2600);
-              if (img.src === src && img.complete) fit();
-              img.onload = fit;
-              img.src = src;
-            },
-          };
-        })();
-
         /* ---------------- gyroscope ---------------- */
         function onOrient(e) {
           if (e.beta === null && e.gamma === null) return;
           state.gyroOK = true;
-          var b = e.beta || 0,
-            g = e.gamma || 0;
+          state.beta = e.beta || 0;
+          state.gamma = e.gamma || 0;
+          // Flat-on-ground reference: beta ~ 0 (phone screen up) when pointing down we use raw beta.
+          var b = state.beta,
+            g = state.gamma;
           if (b > 90) b = 180 - b;
           if (b < -90) b = -180 - b;
           state.beta = b;
-          state.gamma = g;
-          angles.innerHTML = "β " + b.toFixed(1) + "°<br>γ " + g.toFixed(1) + "°";
-          var R = 75 - 17;
-          var max = 25;
-          var x = clamp(g / max, -1, 1) * R;
-          var y = clamp(b / max, -1, 1) * R;
-          var d = Math.hypot(x, y);
+          angles.innerHTML =
+            "β " + b.toFixed(1) + "°<br>γ " + g.toFixed(1) + "°";
+          var R = 75 - 17; // container radius - bubble radius
+          var max = 25; // degrees mapped to edge
+          var x = Math.max(-1, Math.min(1, g / max)) * R;
+          var y = Math.max(-1, Math.min(1, b / max)) * R;
+          var d = Math.sqrt(x * x + y * y);
           if (d > R) {
             x = (x / d) * R;
             y = (y / d) * R;
@@ -1539,7 +1050,7 @@
             });
         }
 
-        /* ---------------- jack detection (live) ---------------- */
+        /* ---------------- OpenCV detection ---------------- */
         var work = document.createElement("canvas");
         var wctx = work.getContext("2d", { willReadFrequently: true });
         var W = 320,
@@ -1563,6 +1074,7 @@
             hsv = new cv.Mat();
             cv.cvtColor(src, hsv, cv.COLOR_RGBA2RGB);
             cv.cvtColor(hsv, hsv, cv.COLOR_RGB2HSV);
+            // Jack (cochonnet) is typically bright saturated: yellow/orange/red-ish.
             lo = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [5, 90, 90, 0]);
             hi = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [40, 255, 255, 255]);
             mask = new cv.Mat();
@@ -1581,7 +1093,7 @@
               var c = contours.get(i);
               var area = cv.contourArea(c);
               var ratio = area / total;
-              if (ratio >= 0.0012 && ratio <= 0.08) {
+              if (ratio >= 0.0015 && ratio <= 0.08) {
                 var per = cv.arcLength(c, true);
                 var circ = per > 0 ? (4 * Math.PI * area) / (per * per) : 0;
                 if (circ > 0.6) {
@@ -1611,289 +1123,94 @@
           }
         }
 
-        /* =========================================================
-           BOULE DETECTION — multi-method, colour blind
-           (Hough + Canny contours + adaptive threshold both polarity)
-           then sub-pixel radius refinement by radial edge scan so the
-           drawn circle matches the real diameter of every boule.
-           ========================================================= */
-
-        function luminanceOf(ctx2d, w, h) {
-          var d = ctx2d.getImageData(0, 0, w, h).data;
-          var lum = new Float32Array(w * h);
-          for (var i = 0, p = 0; i < lum.length; i++, p += 4) {
-            lum[i] = 0.299 * d[p] + 0.587 * d[p + 1] + 0.114 * d[p + 2];
-          }
-          return lum;
-        }
-        function sampleLum(lum, w, h, x, y) {
-          var xi = x < 0 ? 0 : x > w - 1 ? w - 1 : x;
-          var yi = y < 0 ? 0 : y > h - 1 ? h - 1 : y;
-          return lum[(yi | 0) * w + (xi | 0)];
-        }
-
-        // radial edge scan: returns refined {x,y,r,support}
-        function refineCircle(lum, w, h, c, minR, maxR) {
-          var cx = c.x,
-            cy = c.y,
-            cr = c.r;
-          var N = 72,
-            pts,
-            i,
-            iter;
-          for (iter = 0; iter < 2; iter++) {
-            pts = [];
-            var lo = Math.max(minR * 0.7, cr * 0.5),
-              hi = Math.min(maxR * 1.3, cr * 1.75);
-            for (i = 0; i < N; i++) {
-              var th = (i * 2 * Math.PI) / N;
-              var ca = Math.cos(th),
-                sa = Math.sin(th);
-              var bestG = 0,
-                bestR = 0;
-              for (var r = lo; r <= hi; r += 1) {
-                var a = sampleLum(lum, w, h, cx + ca * (r - 1.5), cy + sa * (r - 1.5));
-                var b = sampleLum(lum, w, h, cx + ca * (r + 1.5), cy + sa * (r + 1.5));
-                var g = Math.abs(a - b);
-                if (g > bestG) {
-                  bestG = g;
-                  bestR = r;
-                }
-              }
-              if (bestG > 9) pts.push({ r: bestR, x: cx + ca * bestR, y: cy + sa * bestR });
-            }
-            if (pts.length < 8) return null;
-            // robust radius = median, then reject outliers and recentre
-            var rs = pts
-              .map(function (p) {
-                return p.r;
-              })
-              .sort(function (a, b) {
-                return a - b;
-              });
-            var med = rs[rs.length >> 1];
-            var keep = pts.filter(function (p) {
-              return Math.abs(p.r - med) < med * 0.22;
-            });
-            if (keep.length < 8) return null;
-            var sx = 0,
-              sy = 0,
-              sr = 0;
-            keep.forEach(function (p) {
-              sx += p.x;
-              sy += p.y;
-              sr += p.r;
-            });
-            // centre = centroid of accepted edge points
-            cx = sx / keep.length;
-            cy = sy / keep.length;
-            cr = sr / keep.length;
-            var support = keep.length / N;
-            if (iter === 1) return { x: cx, y: cy, r: cr, support: support };
-          }
-          return null;
-        }
-
-        function pushCand(list, c) {
-          if (!isFinite(c.x) || !isFinite(c.y) || !isFinite(c.r) || c.r <= 0) return;
-          for (var i = 0; i < list.length; i++) {
-            var o = list[i];
-            if (Math.hypot(c.x - o.x, c.y - o.y) < Math.max(o.r, c.r) * 0.8) {
-              o.x = (o.x * o.n + c.x) / (o.n + 1);
-              o.y = (o.y * o.n + c.y) / (o.n + 1);
-              o.r = (o.r * o.n + c.r) / (o.n + 1);
-              o.n++;
-              return;
-            }
-          }
-          list.push({ x: c.x, y: c.y, r: c.r, n: 1 });
-        }
-
-        function contoursToCircles(cv, bin, out, minR, maxR, minFill) {
-          var contours = new cv.MatVector(),
-            hier = new cv.Mat();
-          try {
-            cv.findContours(bin, contours, hier, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
-            for (var i = 0; i < contours.size(); i++) {
-              var c = contours.get(i);
-              try {
-                var area = cv.contourArea(c);
-                if (area < Math.PI * minR * minR * 0.25) continue;
-                var circ = cv.minEnclosingCircle(c);
-                var r = circ.radius;
-                if (r < minR || r > maxR) continue;
-                var fill = area / (Math.PI * r * r);
-                if (fill < minFill) continue;
-                out.push({ x: circ.center.x, y: circ.center.y, r: r });
-              } catch (e) {
-              } finally {
-                c.delete();
-              }
-            }
-          } catch (e) {
-          } finally {
-            try {
-              contours.delete();
-            } catch (e) {}
-            try {
-              hier.delete();
-            } catch (e) {}
-          }
-        }
-
-        function detectBoules(canvasEl, jackPx, sens) {
+        /* ---------------- boule mapping (Hough) ---------------- */
+        function detectBoules(canvasEl, jackPx) {
+          // returns array of {x,y,r,d} in canvasEl pixels, sorted nearest -> farthest
           if (!state.cvReady || !window.cv) return [];
           var cv = window.cv;
-          var SW = 960;
+          var SW = 720; // higher resolution => small/far boules are not missed
           var sc = SW / canvasEl.width;
           var SH = Math.max(1, Math.round(canvasEl.height * sc));
           var tmp = document.createElement("canvas");
           tmp.width = SW;
           tmp.height = SH;
-          var tctx = tmp.getContext("2d", { willReadFrequently: true });
-          tctx.drawImage(canvasEl, 0, 0, SW, SH);
-          var lum = luminanceOf(tctx, SW, SH);
-
-          var minR = SW * (0.016 - sens * 0.0018); // more sensitive -> smaller boules allowed
-          var maxR = SW * 0.24;
+          tmp.getContext("2d").drawImage(canvasEl, 0, 0, SW, SH);
+          var src = null, gray = null;
           var raw = [];
-          var src = null,
-            gray = null,
-            eq = null,
-            blur = null,
-            edges = null,
-            bw = null,
-            k = null;
-
           try {
             src = cv.imread(tmp);
             gray = new cv.Mat();
             cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
-            // local contrast boost so grey boules on grey gravel still show edges
-            eq = new cv.Mat();
-            try {
-              var clahe = new cv.CLAHE(2.6, new cv.Size(8, 8));
-              clahe.apply(gray, eq);
-              clahe.delete();
-            } catch (e) {
-              cv.equalizeHist(gray, eq);
-            }
-            blur = new cv.Mat();
-            cv.medianBlur(eq, blur, 5);
+            cv.medianBlur(gray, gray, 5);
 
-            /* ---- pass 1: Hough circles, several sensitivities ---- */
-            var p2base = 46 - sens * 6; // 46 .. 22
-            [p2base, p2base - 8, p2base - 14, p2base - 20].forEach(function (p2) {
-              if (p2 < 10) p2 = 10;
+            // multi-pass Hough: different sensitivities catch near + far boules
+            var passes = [
+              { minDist: SW * 0.045, p1: 120, p2: 34, minR: SW * 0.018, maxR: SW * 0.2 },
+              { minDist: SW * 0.04, p1: 90, p2: 24, minR: SW * 0.012, maxR: SW * 0.14 },
+              { minDist: SW * 0.06, p1: 140, p2: 44, minR: SW * 0.05, maxR: SW * 0.26 }
+            ];
+            passes.forEach(function (o) {
               var circles = new cv.Mat();
               try {
                 cv.HoughCircles(
-                  blur,
-                  circles,
-                  cv.HOUGH_GRADIENT,
-                  1,
-                  Math.max(8, Math.round(minR * 1.6)),
-                  110,
-                  p2,
-                  Math.round(minR),
-                  Math.round(maxR),
+                  gray, circles, cv.HOUGH_GRADIENT, 1,
+                  Math.max(8, Math.round(o.minDist)),
+                  o.p1, o.p2,
+                  Math.round(o.minR), Math.round(o.maxR)
                 );
                 for (var i = 0; i < circles.cols; i++) {
                   raw.push({
-                    x: circles.data32F[i * 3],
-                    y: circles.data32F[i * 3 + 1],
-                    r: circles.data32F[i * 3 + 2],
+                    x: circles.data32F[i * 3] / sc,
+                    y: circles.data32F[i * 3 + 1] / sc,
+                    r: circles.data32F[i * 3 + 2] / sc
                   });
                 }
               } catch (e) {
               } finally {
-                try {
-                  circles.delete();
-                } catch (e) {}
+                try { circles.delete(); } catch (e) {}
               }
-            });
-
-            /* ---- pass 2: Canny edge contours (colour independent) ---- */
-            edges = new cv.Mat();
-            k = cv.Mat.ones(3, 3, cv.CV_8U);
-            cv.Canny(blur, edges, 30 + sens * 2, 90 + sens * 6);
-            cv.dilate(edges, edges, k);
-            cv.morphologyEx(edges, edges, cv.MORPH_CLOSE, k);
-            contoursToCircles(cv, edges, raw, minR, maxR, 0.32);
-
-            /* ---- pass 3: adaptive threshold, both polarities ---- */
-            bw = new cv.Mat();
-            [cv.THRESH_BINARY, cv.THRESH_BINARY_INV].forEach(function (mode) {
-              try {
-                cv.adaptiveThreshold(
-                  blur,
-                  bw,
-                  255,
-                  cv.ADAPTIVE_THRESH_GAUSSIAN_C,
-                  mode,
-                  61,
-                  mode === cv.THRESH_BINARY ? -6 : 6,
-                );
-                cv.morphologyEx(bw, bw, cv.MORPH_OPEN, k);
-                cv.morphologyEx(bw, bw, cv.MORPH_CLOSE, k);
-                contoursToCircles(cv, bw, raw, minR, maxR, 0.55);
-              } catch (e) {}
             });
           } catch (e) {
           } finally {
-            [src, gray, eq, blur, edges, bw, k].forEach(function (m) {
-              if (m && m.delete) {
-                try {
-                  m.delete();
-                } catch (e) {}
-              }
+            [src, gray].forEach(function (m) {
+              if (m && m.delete) { try { m.delete(); } catch (e) {} }
             });
           }
 
-          /* ---- merge duplicates from all passes ---- */
-          var merged = [];
-          raw.forEach(function (c) {
-            pushCand(merged, c);
-          });
-
-          /* ---- refine each candidate to its true circle ---- */
-          var refined = [];
-          merged.forEach(function (c) {
-            var rf = refineCircle(lum, SW, SH, c, minR, maxR);
-            var f = rf || { x: c.x, y: c.y, r: c.r, support: 0.3 };
-            if (f.r < minR * 0.85 || f.r > maxR * 1.15) return;
-            var minSupport = 0.62 - sens * 0.07; // 0.62 .. 0.34
-            if (f.support < minSupport && c.n < 2) return;
-            f.votes = c.n;
-            pushCand(refined, f);
-            var last = refined[refined.length - 1];
-            if (last && last.support === undefined) last.support = f.support;
-          });
-
-          /* ---- to source-canvas pixels, drop the jack, rank ---- */
+          // drop the jack itself, then merge duplicates from the passes
           var out = [];
-          refined.forEach(function (c) {
-            var b = { x: c.x / sc, y: c.y / sc, r: c.r / sc };
+          raw.forEach(function (c) {
+            if (!isFinite(c.x) || !isFinite(c.y) || !isFinite(c.r) || c.r <= 0) return;
             if (jackPx) {
-              var dd = Math.hypot(b.x - jackPx.x, b.y - jackPx.y);
-              if (dd < Math.max(jackPx.r * 1.2, b.r * 0.6)) return; // that's the jack itself
-              b.d = Math.max(0, dd - b.r - jackPx.r);
-              b.dc = dd;
+              var dd = Math.hypot(c.x - jackPx.x, c.y - jackPx.y);
+              if (dd < jackPx.r * 1.35) return; // that's the jack
             }
-            out.push(b);
+            for (var i = 0; i < out.length; i++) {
+              var o = out[i];
+              if (Math.hypot(c.x - o.x, c.y - o.y) < Math.max(o.r, c.r) * 0.85) {
+                // same boule seen twice -> average it
+                o.x = (o.x + c.x) / 2;
+                o.y = (o.y + c.y) / 2;
+                o.r = (o.r + c.r) / 2;
+                o.n = (o.n || 1) + 1;
+                return;
+              }
+            }
+            out.push({ x: c.x, y: c.y, r: c.r, n: 1 });
           });
 
-          // stable, unbiased ranking: closest edge-to-edge gap wins, no colour filter
-          out.sort(function (a, b) {
-            return a.d - b.d;
-          });
-          return out.slice(0, 60);
+          if (jackPx) {
+            out.forEach(function (b) {
+              // edge-to-edge gap between jack and boule (can be ~0 when touching)
+              b.d = Math.max(0, Math.hypot(b.x - jackPx.x, b.y - jackPx.y) - b.r - jackPx.r);
+            });
+            // strict ranking: nearest to the jack first, whoever the boule belongs to
+            out.sort(function (a, b) { return a.d - b.d; });
+          }
+          return out.slice(0, 50); // supports up to 50 boules
         }
 
         /* ---------------- arrows ---------------- */
-        var CENTER_TOL = 0.12;
-        var LEVEL_TOL = 6;
-        var HOLD_MS = 900;
         function showArrows(dx, dy, on) {
           var TH = CENTER_TOL;
           arrows.left.classList.toggle("show", !!on && dx < -TH);
@@ -1906,6 +1223,9 @@
         }
 
         /* ---------------- main loop ---------------- */
+        var CENTER_TOL = 0.12; // easier to center (12% of frame)
+        var LEVEL_TOL = 6; // degrees — stabilizer corrects the rest
+        var HOLD_MS = 900;
         var lastDetect = 0,
           detectEvery = 150;
         function loop(ts) {
@@ -1917,6 +1237,7 @@
             var d = detectJack();
             if (d) {
               d.ts = ts;
+              // smooth to reduce jitter
               if (state.jack) {
                 d.x = state.jack.x * 0.45 + d.x * 0.55;
                 d.y = state.jack.y * 0.45 + d.y * 0.55;
@@ -1980,105 +1301,87 @@
           }
         }
 
-        /* ---------------- capture + stabilise ---------------- */
-        var baseShot = document.createElement("canvas"); // clean stabilised frame (no overlay)
-        var bctx = baseShot.getContext("2d");
+        /* ---------------- snap + stabilizer + analysis ---------------- */
+        function doSnap() {
+          if (state.frozen || state.busy || !state.camReady) return;
+          state.busy = true;
+          countRing.classList.remove("on");
+          state.steadySince = 0;
+          setStatus("Menstabil & menganalisis...", "guide");
 
-        function captureBase() {
           var vw = video.videoWidth || 1280,
             vh = video.videoHeight || 720;
-          baseShot.width = vw;
-          baseShot.height = vh;
-
-          var jx = state.jack ? state.jack.x * vw : vw / 2;
-          var jy = state.jack ? state.jack.y * vh : vh / 2;
-          var rot = state.gyroOK ? clamp(state.gamma, -12, 12) * (Math.PI / 180) : 0;
-          var shiftX = clamp(vw / 2 - jx, -vw * 0.18, vw * 0.18);
-          var shiftY = clamp(vh / 2 - jy, -vh * 0.18, vh * 0.18);
-          var zoom = 1 + 0.18 + Math.abs(rot) * 0.6;
-
-          bctx.save();
-          bctx.fillStyle = "#000";
-          bctx.fillRect(0, 0, vw, vh);
-          bctx.filter = "brightness(1.06) contrast(1.18) saturate(1.05)";
-          bctx.translate(vw / 2, vh / 2);
-          bctx.rotate(-rot);
-          bctx.scale(zoom, zoom);
-          bctx.translate(-vw / 2 + shiftX, -vh / 2 + shiftY);
-          bctx.drawImage(video, 0, 0, vw, vh);
-          bctx.restore();
-          bctx.filter = "none";
-
-          var jr = (state.jack ? state.jack.r * vw : vw * 0.04) * zoom;
-          if (jr < vw * 0.02) jr = vw * 0.03;
-          return { vw: vw, vh: vh, jack: { x: vw / 2, y: vh / 2, r: jr } };
-        }
-
-        /* ---------------- render overlay ---------------- */
-        function renderResult(base, boules) {
-          var vw = base.vw,
-            vh = base.vh,
-            cx = base.jack.x,
-            cy = base.jack.y,
-            jr = base.jack.r;
-
           freeze.width = vw;
           freeze.height = vh;
-          fctx.drawImage(baseShot, 0, 0);
 
-          // ---- scale calibration ----
-          var mmJack = 30 / (2 * jr); // official jack Ø30mm
-          var mmBoule = null;
-          if (boules.length) {
-            var rs = boules
-              .map(function (b) {
-                return b.r;
-              })
-              .sort(function (a, b) {
-                return a - b;
-              });
-            var medR = rs[rs.length >> 1];
-            if (medR > 0) mmBoule = 74 / (2 * medR); // typical competition boule Ø74mm
+          // --- STABILIZER: recentre on jack + level the horizon (no stretching) ---
+          var jx = state.jack ? state.jack.x * vw : vw / 2;
+          var jy = state.jack ? state.jack.y * vh : vh / 2;
+          var rot = 0;
+          if (state.gyroOK) {
+            rot = Math.max(-12, Math.min(12, state.gamma)) * (Math.PI / 180);
           }
-          var mmPerPx = mmJack;
-          if (state.cal === "boule" && mmBoule) mmPerPx = mmBoule;
-          else if (state.cal === "auto" && mmBoule) {
-            var ratio = mmBoule / mmJack;
-            mmPerPx = ratio > 0.5 && ratio < 2 ? (mmJack + mmBoule) / 2 : mmJack;
-          }
+          var shiftX = vw / 2 - jx,
+            shiftY = vh / 2 - jy;
+          var maxShift = 0.18; // clamp so we never pull in empty edges too much
+          shiftX = Math.max(-vw * maxShift, Math.min(vw * maxShift, shiftX));
+          shiftY = Math.max(-vh * maxShift, Math.min(vh * maxShift, shiftY));
+          var zoom = 1 + maxShift + Math.abs(rot) * 0.6; // cover borders, uniform scale
 
-          var LW = Math.max(3, vw * 0.0038);
-          var fs = Math.max(18, vw * 0.026);
-          if (boules.length > 10) fs = Math.max(13, fs * Math.pow(10 / boules.length, 0.3));
+          fctx.save();
+          fctx.fillStyle = "#000";
+          fctx.fillRect(0, 0, vw, vh);
+          fctx.filter = "brightness(1.06) contrast(1.16) saturate(1.05)";
+          fctx.translate(vw / 2, vh / 2);
+          fctx.rotate(-rot);
+          fctx.scale(zoom, zoom);
+          fctx.translate(-vw / 2 + shiftX, -vh / 2 + shiftY);
+          fctx.drawImage(video, 0, 0, vw, vh);
+          fctx.restore();
+          fctx.filter = "none";
 
-          // jack + reference rings
+          // Jack now sits at the exact centre of the stabilised frame
+          var cx = vw / 2,
+            cy = vh / 2;
+          var jr = (state.jack ? state.jack.r * vw : vw * 0.04) * zoom;
+          if (jr < vw * 0.02) jr = vw * 0.03;
+
+          // --- AUTO-MAP boules around the jack ---
+          var boules = detectBoules(freeze, { x: cx, y: cy, r: jr });
+          var mmPerPx = 30 / (2 * jr); // official jack ~30 mm diameter
+
+          var LW = Math.max(3, vw * 0.0042);
+          var fs = Math.max(20, vw * 0.028);
+          // keep labels readable even when many boules are tagged
+          if (boules.length > 10) fs = Math.max(14, fs * (10 / boules.length) ** 0.35);
+
+          // jack marker
           fctx.lineWidth = LW;
           fctx.strokeStyle = "rgba(255,193,7,0.98)";
           fctx.beginPath();
           fctx.arc(cx, cy, jr, 0, Math.PI * 2);
           fctx.stroke();
           fctx.setLineDash([10, 8]);
-          fctx.strokeStyle = "rgba(0,242,254,0.45)";
-          fctx.lineWidth = Math.max(2, LW * 0.55);
-          [2.2, 3.6, 5, 6.6].forEach(function (m) {
+          fctx.strokeStyle = "rgba(0,242,254,0.55)";
+          fctx.lineWidth = Math.max(2, LW * 0.6);
+          [2.2, 3.6, 5].forEach(function (m) {
             fctx.beginPath();
             fctx.arc(cx, cy, jr * m, 0, Math.PI * 2);
             fctx.stroke();
           });
           fctx.setLineDash([]);
+
           fctx.font = "700 " + fs + "px Poppins, sans-serif";
           fctx.textAlign = "center";
           fctx.textBaseline = "middle";
 
-          function pill(text, x, y, color, size) {
-            var s = size || fs;
-            fctx.font = "700 " + s + "px Poppins, sans-serif";
-            var pad = s * 0.42;
+          function tag(text, x, y, color) {
+            var pad = fs * 0.42;
             var w = fctx.measureText(text).width + pad * 2;
-            var h = s * 1.5;
-            var rr = h / 2;
-            fctx.fillStyle = "rgba(0,0,0,0.62)";
+            var h = fs * 1.5;
+            fctx.fillStyle = "rgba(0,0,0,0.6)";
             fctx.beginPath();
+            var rr = h / 2;
             fctx.moveTo(x - w / 2 + rr, y - h / 2);
             fctx.arcTo(x + w / 2, y - h / 2, x + w / 2, y + h / 2, rr);
             fctx.arcTo(x + w / 2, y + h / 2, x - w / 2, y + h / 2, rr);
@@ -2090,57 +1393,37 @@
             fctx.fillText(text, x, y);
           }
 
-          pill("JACK", cx, cy - jr - fs * 1.15, "rgba(255,193,7,1)");
+          tag("JACK", cx, cy - jr - fs * 1.2, "rgba(255,193,7,1)");
 
           boules.forEach(function (b, i) {
-            var isFirst = i === 0;
-            var col = isFirst ? "rgba(34,224,122,1)" : "rgba(0,242,254,1)";
-
-            // exact circle at the measured diameter of THIS boule
-            fctx.lineWidth = isFirst ? LW * 1.5 : LW;
-            fctx.strokeStyle = "rgba(0,0,0,0.5)";
-            fctx.beginPath();
-            fctx.arc(b.x, b.y, b.r + LW * 0.7, 0, Math.PI * 2);
-            fctx.stroke();
+            var isClosest = i === 0;
+            var col = isClosest ? "rgba(34,224,122,1)" : "rgba(0,242,254,1)";
             fctx.strokeStyle = col;
+            fctx.lineWidth = isClosest ? LW * 1.4 : LW;
             fctx.beginPath();
             fctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
             fctx.stroke();
 
-            // measuring line jack edge -> boule edge
+            // measuring line jack -> boule edge
             var ang = Math.atan2(b.y - cy, b.x - cx);
-            fctx.setLineDash(isFirst ? [] : [12, 9]);
-            fctx.lineWidth = Math.max(2, LW * 0.8);
-            fctx.strokeStyle = col;
+            fctx.setLineDash(isClosest ? [] : [12, 9]);
             fctx.beginPath();
             fctx.moveTo(cx + Math.cos(ang) * jr, cy + Math.sin(ang) * jr);
             fctx.lineTo(b.x - Math.cos(ang) * b.r, b.y - Math.sin(ang) * b.r);
             fctx.stroke();
             fctx.setLineDash([]);
 
-            // ---- NUMBER BADGE EXACTLY AT THE CENTRE OF THE BOULE ----
-            var badgeR = Math.max(fs * 0.62, Math.min(b.r * 0.55, fs * 1.15));
-            fctx.beginPath();
-            fctx.arc(b.x, b.y, badgeR, 0, Math.PI * 2);
-            fctx.fillStyle = isFirst ? "rgba(6,60,40,0.86)" : "rgba(0,0,0,0.66)";
-            fctx.fill();
-            fctx.lineWidth = Math.max(2, LW * 0.7);
-            fctx.strokeStyle = col;
-            fctx.stroke();
-            fctx.fillStyle = col;
-            fctx.font = "800 " + badgeR * 1.15 + "px Poppins, sans-serif";
-            fctx.fillText(String(i + 1), b.x, b.y + badgeR * 0.04);
-
-            // distance label just outside the boule, on the jack side
-            var cm = (b.d * mmPerPx) / 10;
-            var lx = b.x - Math.cos(ang) * (b.r + fs * 1.15);
-            var ly = b.y - Math.sin(ang) * (b.r + fs * 1.15);
-            pill(cm.toFixed(1) + " cm", lx, ly, col, fs * 0.86);
+            var mid = {
+              x: (cx + b.x) / 2,
+              y: (cy + b.y) / 2,
+            };
+            var cm = Math.max(0, b.d * mmPerPx) / 10;
+            tag(i + 1 + " · " + cm.toFixed(1) + " cm", mid.x, mid.y, col);
+            tag("#" + (i + 1), b.x, b.y - b.r - fs * 1.1, col);
           });
 
           // header + verdict
           fctx.textAlign = "left";
-          fctx.font = "700 " + fs + "px Poppins, sans-serif";
           fctx.fillStyle = "rgba(255,255,255,0.95)";
           fctx.strokeStyle = "rgba(0,0,0,0.55)";
           fctx.lineWidth = Math.max(2, fs * 0.12);
@@ -2149,118 +1432,32 @@
           var verdict = boules.length
             ? "Terdekat: #1 (" + ((boules[0].d * mmPerPx) / 10).toFixed(1) + " cm)"
             : "Tiada boule dikesan di sekeliling Jack";
-          if (boules.length > 1) {
-            var gap = ((boules[1].d - boules[0].d) * mmPerPx) / 10;
-            verdict += "  |  beza #2: " + gap.toFixed(1) + " cm";
-          }
           fctx.strokeText(verdict, fs * 0.7, fs * 2.7);
           fctx.fillText(verdict, fs * 0.7, fs * 2.7);
-          fctx.strokeText(
-            new Date().toLocaleString() + "  ·  " + boules.length + " boule",
-            fs * 0.7,
-            fs * 4.0,
-          );
-          fctx.fillText(
-            new Date().toLocaleString() + "  ·  " + boules.length + " boule",
-            fs * 0.7,
-            fs * 4.0,
-          );
-
-          return mmPerPx;
-        }
-
-        function renderSheet(boules, mmPerPx) {
-          var list = $("rankList");
-          list.innerHTML = "";
-          var v = $("verdict");
-          if (!boules.length) {
-            v.textContent =
-              "Tiada boule dikesan. Naikkan sensitiviti dalam Tetapan atau tekan Imbas Lagi.";
-          } else {
-            var d1 = (boules[0].d * mmPerPx) / 10;
-            var txt = "Boule #1 paling hampir — " + d1.toFixed(1) + " cm dari Jack.";
-            if (boules.length > 1) {
-              var gap = ((boules[1].d - boules[0].d) * mmPerPx) / 10;
-              txt +=
-                gap < 0.3
-                  ? " Beza dengan #2 hanya " + gap.toFixed(1) + " cm — perlu ukur fizikal!"
-                  : " Beza dengan #2: " + gap.toFixed(1) + " cm.";
-            }
-            v.textContent = txt;
-          }
-          boules.forEach(function (b, i) {
-            var row = document.createElement("div");
-            row.className = "rank" + (i === 0 ? " first" : "");
-            var no = document.createElement("div");
-            no.className = "no";
-            no.textContent = String(i + 1);
-            var lab = document.createElement("div");
-            var dia = ((2 * b.r * mmPerPx) / 10).toFixed(1);
-            lab.innerHTML =
-              "Boule #" + (i + 1) + '<div class="dia">Ø ' + dia + " cm (dianggar)</div>";
-            var d = document.createElement("div");
-            d.className = "d";
-            d.textContent = ((b.d * mmPerPx) / 10).toFixed(1) + " cm";
-            row.appendChild(no);
-            row.appendChild(lab);
-            row.appendChild(d);
-            list.appendChild(row);
-          });
-        }
-
-        function analyse(sens) {
-          var base = state.last ? state.last.base : null;
-          if (!base) return;
-          setStatus("Menganalisis semua boule...", "guide");
-          var boules = detectBoules(baseShot, base.jack, sens);
-          var mmPerPx = renderResult(base, boules);
-          renderSheet(boules, mmPerPx);
-          state.last.boules = boules;
-          state.last.mmPerPx = mmPerPx;
-          state.last.img = freeze.toDataURL("image/jpeg", 0.82);
-          setStatus(
-            boules.length
-              ? "Dianalisis — " + boules.length + " boule ditag"
-              : "Dianalisis — tiada boule dikesan",
-            "done",
-          );
-          return boules;
-        }
-
-        function doSnap() {
-          if (state.frozen || state.busy || !state.camReady) return;
-          state.busy = true;
-          countRing.classList.remove("on");
-          state.steadySince = 0;
-          setStatus("Menstabil & menganalisis...", "guide");
-
-          var base = captureBase();
-          state.last = { base: base };
-
-          var boules = analyse(state.sens) || [];
 
           freeze.style.display = "block";
           video.classList.add("hidden");
           state.frozen = true;
           state.busy = false;
+
+          setStatus(
+            boules.length
+              ? "Keputusan Dianalisis! " + boules.length + " boule dipetakan"
+              : "Keputusan Dianalisis!",
+            "done"
+          );
           jackMark.style.display = "none";
           hideArrows();
           setResultMode(true);
-          $("stage").classList.add("result");
-          $("sheet").classList.add("on");
 
           try {
-            saveShot(state.last.img, {
-              n: boules.length,
-              best: boules.length
-                ? ((boules[0].d * state.last.mmPerPx) / 10).toFixed(1) + " cm"
-                : "",
-            });
+            saveShot(freeze.toDataURL("image/jpeg", 0.72));
           } catch (e) {
             toast("Gagal menyimpan rekod.");
           }
           if (navigator.vibrate) navigator.vibrate(60);
         }
+
 
         function resume() {
           state.frozen = false;
@@ -2268,8 +1465,6 @@
           video.classList.remove("hidden");
           state.steadySince = 0;
           setResultMode(false);
-          $("stage").classList.remove("result");
-          $("sheet").classList.remove("on");
           setStatus("Mencari Jack...", "search");
         }
 
@@ -2290,206 +1485,53 @@
           else doSnap();
         });
 
-        // zoom the analysed result
-        $("btnZoom").addEventListener("click", function () {
-          if (state.last && state.last.img) ZV.open(state.last.img);
-        });
-        // tap the frozen photo to zoom too
-        freeze.addEventListener("click", function () {
-          if (state.frozen && state.last && state.last.img) ZV.open(state.last.img);
-        });
-
-        // rescan with maximum sensitivity
-        $("btnRescan").addEventListener("click", function () {
-          if (!state.last) return;
-          var s = Math.min(4, state.sens + 1);
-          state.sens = s;
-          rngSens.value = String(s);
-          $("sensHint").textContent = SENS_TEXT[s];
-          setStr(LS.sens, String(s));
-          var b = analyse(s) || [];
-          toast("Imbas semula: " + b.length + " boule ditag (sensitiviti " + (s + 1) + "/5)");
-        });
-
-        // share / save
-        $("btnShare").addEventListener("click", function () {
-          if (!state.last || !state.last.img) return;
-          fetch(state.last.img)
-            .then(function (r) {
-              return r.blob();
-            })
-            .then(function (blob) {
-              var file = new File([blob], "petanque-measure.jpg", { type: "image/jpeg" });
-              if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                return navigator.share({ files: [file], title: "Petanque Referee Pro" });
-              }
-              var a = document.createElement("a");
-              a.href = URL.createObjectURL(blob);
-              a.download = "petanque-measure.jpg";
-              a.click();
-              setTimeout(function () {
-                URL.revokeObjectURL(a.href);
-              }, 4000);
-            })
-            .catch(function () {
-              toast("Gagal berkongsi gambar.");
-            });
-        });
-
         /* ---------------- boot ---------------- */
-        var CV_SOURCES = [
-          "https://cdn.jsdelivr.net/npm/@techstark/opencv-js@4.10.0-release.1/dist/opencv.js",
-          "https://unpkg.com/@techstark/opencv-js@4.10.0-release.1/dist/opencv.js",
-          "https://docs.opencv.org/4.8.0/opencv.js",
-        ];
-        var CV_CACHE = "petanque-cv-engine-v1";
-
-        function fetchWithProgress(url, onProgress) {
-          return fetch(url, { mode: "cors", cache: "force-cache" }).then(function (res) {
-            if (!res.ok) throw new Error("http " + res.status);
-            var total = parseInt(res.headers.get("content-length") || "0", 10);
-            if (!res.body || !total || !window.ReadableStream) return res.text();
-            var reader = res.body.getReader(),
-              chunks = [],
-              got = 0;
-            return (function pump() {
-              return reader.read().then(function (r) {
-                if (r.done) return new Blob(chunks).text();
-                chunks.push(r.value);
-                got += r.value.length;
-                onProgress(Math.min(99, Math.round((got / total) * 100)));
-                return pump();
-              });
-            })();
-          });
-        }
-
-        function cacheGet(url) {
-          if (!window.caches) return Promise.resolve(null);
-          return caches
-            .open(CV_CACHE)
-            .then(function (c) {
-              return c.match(url);
-            })
-            .then(function (r) {
-              return r ? r.text() : null;
-            })
-            .catch(function () {
-              return null;
-            });
-        }
-        function cachePut(url, code) {
-          if (!window.caches) return;
-          caches
-            .open(CV_CACHE)
-            .then(function (c) {
-              c.put(url, new Response(code, { headers: { "content-type": "text/javascript" } }));
-            })
-            .catch(function () {});
-        }
-
-        function runCvCode(code) {
-          return new Promise(function (resolve, reject) {
-            try {
-              var blob = new Blob([code], { type: "text/javascript" });
-              var s = document.createElement("script");
-              s.src = URL.createObjectURL(blob);
-              s.onload = function () {
-                var cv = window.cv;
-                if (cv && cv.Mat) return resolve(true);
-                if (cv && typeof cv.then === "function")
-                  return cv.then(function (m) {
-                    window.cv = m;
-                    resolve(true);
-                  }, reject);
-                if (cv) {
-                  cv.onRuntimeInitialized = function () {
-                    resolve(true);
-                  };
-                  return;
-                }
-                reject(new Error("no cv"));
-              };
-              s.onerror = function () {
-                reject(new Error("exec"));
-              };
-              document.head.appendChild(s);
-            } catch (e) {
-              reject(e);
-            }
-          });
-        }
-
-        function loadOpenCV(onProgress) {
-          var i = 0;
-          function attempt() {
-            if (i >= CV_SOURCES.length) return Promise.resolve(false);
-            var url = CV_SOURCES[i++];
-            return cacheGet(url)
-              .then(function (cached) {
-                if (cached) {
-                  onProgress(100, true);
-                  return cached;
-                }
-                return fetchWithProgress(url, function (p) {
-                  onProgress(p, false);
-                }).then(function (code) {
-                  cachePut(url, code);
-                  return code;
+        function loadOpenCV() {
+          return new Promise(function (resolve) {
+            var s = document.createElement("script");
+            s.src = "https://docs.opencv.org/4.8.0/opencv.js";
+            s.async = true;
+            s.onload = function () {
+              var cv = window.cv;
+              if (cv && cv.Mat) return resolve(true);
+              if (cv && typeof cv.then === "function") {
+                cv.then(function (m) {
+                  window.cv = m;
+                  resolve(true);
                 });
-              })
-              .then(runCvCode)
-              .then(function () {
-                return true;
-              })
-              .catch(function () {
-                return attempt();
-              });
-          }
-          return attempt();
+                return;
+              }
+              if (cv) {
+                cv.onRuntimeInitialized = function () {
+                  resolve(true);
+                };
+                return;
+              }
+              resolve(false);
+            };
+            s.onerror = function () {
+              resolve(false);
+            };
+            document.head.appendChild(s);
+            setTimeout(function () {
+              resolve(!!(window.cv && window.cv.Mat));
+            }, 25000);
+          });
         }
 
         function boot() {
           requestAnimationFrame(loop);
-
-          var uiOpened = false;
-          function openUI() {
-            if (uiOpened) return;
-            uiOpened = true;
-            var l = $("loader");
-            l.classList.add("hide");
-            setTimeout(function () {
-              l.style.display = "none";
-            }, 400);
-          }
-          // UI terbuka SERTA-MERTA — tiada tunggu AI/kamera sama sekali.
-          openUI();
-          setStatus("Bersedia — enjin AI sedang dimuat", "guide");
-
           startCamera().catch(function () {});
-
-          var started = Date.now(),
-            aiStarted = false;
-          function startAI() {
-            if (aiStarted) return;
-            aiStarted = true;
-            loadOpenCV(function (p, cached) {
-              if (state.cvReady) return;
-              setStatus(cached ? "Menyiapkan enjin AI…" : "Enjin AI " + p + "%", "guide");
-            }).then(function (ok) {
-              state.cvReady = !!ok;
-              if (!ok) {
-                toast("AI tidak dimuatkan — mod snap manual sahaja.");
-                setStatus("Mod manual — tekan Snap", "guide");
-              } else {
-                toast("Enjin AI sedia (" + ((Date.now() - started) / 1000).toFixed(1) + "s)");
-                setStatus("Mencari Jack...", "search");
-              }
-            });
-          }
-          // Mula selepas frame pertama supaya sentuhan/butang tak pernah tersekat.
-          if (window.requestIdleCallback) requestIdleCallback(startAI, { timeout: 800 });
-          else setTimeout(startAI, 250);
+          loadOpenCV().then(function (ok) {
+            state.cvReady = !!ok;
+            $("loader").classList.add("hide");
+            if (!ok) {
+              toast("AI tidak dimuatkan — mod snap manual sahaja.");
+              setStatus("Mod manual — tekan Snap", "guide");
+            } else {
+              setStatus("Mencari Jack...", "search");
+            }
+          });
         }
 
         document.addEventListener("visibilitychange", function () {
