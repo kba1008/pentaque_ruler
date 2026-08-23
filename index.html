@@ -515,6 +515,23 @@
           transform 0.28s ease,
           opacity 0.28s ease;
       }
+      .panel {
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+      }
+      .panel > .card,
+      .panel > .panel-actions,
+      .panel > h2,
+      .panel > p.sub {
+        flex: 0 0 auto;
+      }
+      #panelHistory {
+        overflow: hidden;
+      }
+      #histList {
+        min-height: 0;
+      }
       .panel.open {
         display: flex;
         transform: translateY(0);
