@@ -1,11 +1,6 @@
 /* Petanque Referee Pro - Service Worker */
-const CACHE = "petanque-ref-pro-v4";
-const ASSETS = [
-  "./",
-  "./index.html",
-  "./manifest.json",
-  "./icon.png",
-];
+const CACHE = "petanque-ref-pro-v6";
+const ASSETS = ["./", "./index.html", "./manifest.json", "./icon.png"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -31,7 +26,6 @@ self.addEventListener("fetch", (event) => {
   const req = event.request;
   if (req.method !== "GET") return;
 
-  // Navigations: network first, fall back to cached shell (offline support).
   if (req.mode === "navigate") {
     event.respondWith(
       (async () => {
@@ -49,7 +43,6 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Other GETs: cache first, then network (and store same-origin/CDN responses).
   event.respondWith(
     (async () => {
       const cache = await caches.open(CACHE);
