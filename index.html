@@ -628,6 +628,137 @@
         margin-top: 6px;
       }
 
+
+      /* ===================== ZOOM / PAN ===================== */
+      #freeze {
+        transform-origin: 0 0;
+        will-change: transform;
+      }
+      #stage.zoomable {
+        touch-action: none;
+      }
+      #zoomBar {
+        position: absolute;
+        z-index: 10;
+        right: 12px;
+        bottom: calc(178px + var(--safe-b));
+        display: none;
+        flex-direction: column;
+        gap: 8px;
+        padding: 8px;
+      }
+      #zoomBar.on {
+        display: flex;
+      }
+      .zbtn {
+        width: 44px;
+        height: 44px;
+        border: 0;
+        border-radius: 12px;
+        font-family: inherit;
+        font-size: 17px;
+        font-weight: 700;
+        color: #063049;
+        background: var(--grad-light);
+        box-shadow: 0 3px 0 #c3ccd6;
+        cursor: pointer;
+      }
+      .zbtn:active {
+        transform: translateY(3px);
+        box-shadow: 0 0 0 #c3ccd6;
+      }
+      #zoomLevel {
+        text-align: center;
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--blue);
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* ===================== HISTORY ITEM ===================== */
+      .hist-item {
+        position: relative;
+      }
+      .hist-item .thumb {
+        display: block;
+        width: 100%;
+        padding: 0;
+        border: 0;
+        background: #000;
+        cursor: pointer;
+      }
+      .hist-tools {
+        display: flex;
+        gap: 6px;
+        padding: 0 8px 8px;
+      }
+      .hist-tools button {
+        flex: 1;
+        border: 0;
+        border-radius: 10px;
+        padding: 8px 0;
+        font-family: inherit;
+        font-size: 13px;
+        font-weight: 600;
+        color: #063049;
+        background: var(--soft-gray);
+        cursor: pointer;
+      }
+      .hist-tools button.del {
+        background: rgba(211, 32, 41, 0.12);
+        color: #b3131b;
+      }
+
+      /* ===================== VIEWER ===================== */
+      #viewer {
+        position: fixed;
+        inset: 0;
+        z-index: 40;
+        background: #05070d;
+        display: none;
+        touch-action: none;
+        overflow: hidden;
+      }
+      #viewer.open {
+        display: block;
+      }
+      #viewerImg {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        transform-origin: 0 0;
+        will-change: transform;
+        user-select: none;
+        -webkit-user-drag: none;
+      }
+      #viewerBar {
+        position: absolute;
+        z-index: 2;
+        left: 12px;
+        right: 12px;
+        bottom: calc(14px + var(--safe-b));
+        padding: 10px;
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      #viewerMeta {
+        position: absolute;
+        z-index: 2;
+        top: calc(12px + var(--safe-t));
+        left: 12px;
+        right: 12px;
+        padding: 10px 14px;
+        font-size: 12px;
+        font-weight: 600;
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
       #toast {
         position: fixed;
         z-index: 60;
@@ -694,6 +825,13 @@
         <div id="statusText">Memuatkan AI...</div>
       </div>
 
+      <div id="zoomBar" class="glass">
+        <button class="zbtn" id="zIn" aria-label="Zoom masuk">＋</button>
+        <div id="zoomLevel">1.0×</div>
+        <button class="zbtn" id="zOut" aria-label="Zoom keluar">－</button>
+        <button class="zbtn" id="zReset" aria-label="Set semula zoom">⤢</button>
+      </div>
+
       <div id="dock" class="glass">
         <button class="btn icon" id="btnSettings" aria-label="Tetapan">⚙</button>
         <button class="btn primary" id="btnSnap">Snap Manual</button>
@@ -752,6 +890,19 @@
       </div>
     </section>
 
+    <!-- ============ IMAGE VIEWER ============ -->
+    <div id="viewer">
+      <img id="viewerImg" alt="Rekod ukuran penuh" />
+      <div id="viewerMeta" class="glass"><span id="viewerDate"></span><span id="viewerZoom">1.0×</span></div>
+      <div id="viewerBar" class="glass">
+        <button class="btn icon" id="vOut" aria-label="Zoom keluar">－</button>
+        <button class="btn icon" id="vIn" aria-label="Zoom masuk">＋</button>
+        <button class="btn" id="vShare">Kongsi</button>
+        <button class="btn" id="vSave">Simpan</button>
+        <button class="btn danger icon" id="vClose" aria-label="Tutup">✕</button>
+      </div>
+    </div>
+
     <!-- ============ LOADER ============ -->
     <div id="loader">
       <div>
@@ -792,7 +943,7 @@
         };
         var btnSnap = $("btnSnap");
 
-        var LS = { grid: "prp.grid", auto: "prp.auto", hist: "prp.history" };
+        var LS = { grid: "prp.grid", auto: "prp.auto" };
         var state = {
           cvReady: false,
           camReady: false,
@@ -874,36 +1025,100 @@
           });
         });
 
-        /* ---------------- history ---------------- */
-        function readHistory() {
-          try {
-            return JSON.parse(localStorage.getItem(LS.hist) || "[]");
-          } catch (e) {
-            return [];
-          }
+        /* ---------------- storage: IndexedDB (peranti sahaja) ---------------- */
+        var DB_NAME = "prp-db",
+          STORE = "shots",
+          dbP = null;
+        function openDB() {
+          if (dbP) return dbP;
+          dbP = new Promise(function (resolve, reject) {
+            if (!window.indexedDB) return reject(new Error("no idb"));
+            var req = indexedDB.open(DB_NAME, 1);
+            req.onupgradeneeded = function () {
+              var db = req.result;
+              if (!db.objectStoreNames.contains(STORE)) {
+                db.createObjectStore(STORE, { keyPath: "id", autoIncrement: true });
+              }
+            };
+            req.onsuccess = function () {
+              resolve(req.result);
+            };
+            req.onerror = function () {
+              reject(req.error);
+            };
+          });
+          return dbP;
         }
-        function writeHistory(list) {
-          try {
-            localStorage.setItem(LS.hist, JSON.stringify(list));
-            return true;
-          } catch (e) {
-            return false;
-          }
+        function idbRun(mode, fn) {
+          return openDB().then(function (db) {
+            return new Promise(function (resolve, reject) {
+              var tx = db.transaction(STORE, mode);
+              var st = tx.objectStore(STORE);
+              var out = fn(st);
+              tx.oncomplete = function () {
+                resolve(out && out.result !== undefined ? out.result : out);
+              };
+              tx.onerror = function () {
+                reject(tx.error);
+              };
+            });
+          });
         }
-        function saveShot(dataUrl) {
-          var list = readHistory();
-          list.unshift({ t: Date.now(), img: dataUrl });
-          while (list.length > 0 && !writeHistory(list)) {
-            list.pop(); // quota: drop oldest until it fits
-            if (list.length === 0) {
-              toast("Storan penuh — rekod tidak disimpan.");
-              return;
-            }
-          }
-          if (list.length > 40) {
-            list.length = 40;
-            writeHistory(list);
-          }
+        function addShot(blob) {
+          return idbRun("readwrite", function (st) {
+            return st.add({ t: Date.now(), blob: blob });
+          });
+        }
+        function allShots() {
+          return idbRun("readonly", function (st) {
+            return st.getAll();
+          }).then(function (list) {
+            list = list || [];
+            list.sort(function (a, b) {
+              return b.t - a.t;
+            });
+            return list;
+          });
+        }
+        function deleteShot(id) {
+          return idbRun("readwrite", function (st) {
+            return st.delete(id);
+          });
+        }
+        function clearShots() {
+          return idbRun("readwrite", function (st) {
+            return st.clear();
+          });
+        }
+        function trimShots(max) {
+          return allShots().then(function (list) {
+            var extra = list.slice(max);
+            return Promise.all(
+              extra.map(function (it) {
+                return deleteShot(it.id);
+              })
+            );
+          });
+        }
+        function saveShot(blob) {
+          return addShot(blob)
+            .then(function () {
+              return trimShots(200);
+            })
+            .catch(function () {
+              toast("Gagal menyimpan rekod dalam telefon.");
+            });
+        }
+
+        /* ---------------- history UI ---------------- */
+        var histUrls = [];
+        function releaseUrls() {
+          histUrls.forEach(function (u) {
+            try {
+              URL.revokeObjectURL(u);
+            } catch (e) {}
+          });
+          histUrls = [];
         }
         function fmt(ts) {
           var d = new Date(ts);
@@ -922,40 +1137,108 @@
             p(d.getMinutes())
           );
         }
-        function renderHistory() {
-          var list = readHistory(),
-            box = $("histList");
-          box.innerHTML = "";
-          if (!list.length) {
-            var e = document.createElement("div");
-            e.className = "empty";
-            e.textContent = "Tiada rekod lagi. Snap ukuran pertama anda!";
-            e.style.gridColumn = "1 / -1";
-            box.appendChild(e);
+        function fileName(ts) {
+          return "petanque-" + new Date(ts).toISOString().replace(/[:.]/g, "-") + ".jpg";
+        }
+        function shareShot(item) {
+          var file = null;
+          try {
+            file = new File([item.blob], fileName(item.t), { type: "image/jpeg" });
+          } catch (e) {}
+          if (file && navigator.canShare && navigator.canShare({ files: [file] }) && navigator.share) {
+            navigator
+              .share({
+                files: [file],
+                title: "Petanque Referee Pro",
+                text: "Ukuran rasmi — " + fmt(item.t),
+              })
+              .catch(function () {});
             return;
           }
-          list.forEach(function (it) {
-            var card = document.createElement("div");
-            card.className = "hist-item";
-            var img = document.createElement("img");
-            img.src = it.img;
-            img.alt = "Rekod ukuran " + fmt(it.t);
-            img.loading = "lazy";
-            var m = document.createElement("div");
-            m.className = "meta";
-            m.textContent = fmt(it.t);
-            card.appendChild(img);
-            card.appendChild(m);
-            box.appendChild(card);
-          });
+          downloadShot(item);
+          toast("Kongsi terus tidak disokong — gambar dimuat turun.");
+        }
+        function downloadShot(item) {
+          var u = URL.createObjectURL(item.blob);
+          var a = document.createElement("a");
+          a.href = u;
+          a.download = fileName(item.t);
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          setTimeout(function () {
+            URL.revokeObjectURL(u);
+          }, 4000);
+        }
+        function renderHistory() {
+          var box = $("histList");
+          box.innerHTML = '<div class="empty" style="grid-column:1/-1">Memuatkan rekod...</div>';
+          return allShots()
+            .then(function (list) {
+              releaseUrls();
+              box.innerHTML = "";
+              if (!list.length) {
+                var e = document.createElement("div");
+                e.className = "empty";
+                e.textContent = "Tiada rekod lagi. Snap ukuran pertama anda!";
+                e.style.gridColumn = "1 / -1";
+                box.appendChild(e);
+                return;
+              }
+              list.forEach(function (it) {
+                var url = URL.createObjectURL(it.blob);
+                histUrls.push(url);
+                var card = document.createElement("div");
+                card.className = "hist-item";
+
+                var btn = document.createElement("button");
+                btn.className = "thumb";
+                btn.setAttribute("aria-label", "Besarkan rekod " + fmt(it.t));
+                var img = document.createElement("img");
+                img.src = url;
+                img.alt = "Rekod ukuran " + fmt(it.t);
+                img.loading = "lazy";
+                btn.appendChild(img);
+                btn.addEventListener("click", function () {
+                  openViewer(it, url);
+                });
+
+                var m = document.createElement("div");
+                m.className = "meta";
+                m.textContent = fmt(it.t);
+
+                var tools = document.createElement("div");
+                tools.className = "hist-tools";
+                var bShare = document.createElement("button");
+                bShare.textContent = "Kongsi";
+                bShare.addEventListener("click", function () {
+                  shareShot(it);
+                });
+                var bDel = document.createElement("button");
+                bDel.className = "del";
+                bDel.textContent = "Padam";
+                bDel.addEventListener("click", function () {
+                  deleteShot(it.id).then(renderHistory);
+                });
+                tools.appendChild(bShare);
+                tools.appendChild(bDel);
+
+                card.appendChild(btn);
+                card.appendChild(m);
+                card.appendChild(tools);
+                box.appendChild(card);
+              });
+            })
+            .catch(function () {
+              box.innerHTML = '<div class="empty" style="grid-column:1/-1">Storan tidak tersedia.</div>';
+            });
         }
         $("btnClear").addEventListener("click", function () {
           if (!confirm("Padam semua rekod?")) return;
-          try {
-            localStorage.removeItem(LS.hist);
-          } catch (e) {}
-          renderHistory();
-          toast("Semua rekod dipadam.");
+          clearShots().then(function () {
+            renderHistory();
+            toast("Semua rekod dipadam.");
+          });
         });
 
         /* ---------------- gyroscope ---------------- */
@@ -1393,6 +1676,23 @@
             fctx.fillText(text, x, y);
           }
 
+          function badge(text, x, y, color, br) {
+            // nombor boule diletak tepat di TENGAH bola
+            var rad = Math.max(fs * 0.72, Math.min(br * 0.62, fs * 1.5));
+            fctx.beginPath();
+            fctx.arc(x, y, rad, 0, Math.PI * 2);
+            fctx.fillStyle = "rgba(0,0,0,0.62)";
+            fctx.fill();
+            fctx.lineWidth = Math.max(2, LW * 0.8);
+            fctx.strokeStyle = color;
+            fctx.stroke();
+            var prev = fctx.font;
+            fctx.font = "800 " + Math.round(rad * 1.15) + "px Poppins, sans-serif";
+            fctx.fillStyle = color;
+            fctx.fillText(text, x, y);
+            fctx.font = prev;
+          }
+
           tag("JACK", cx, cy - jr - fs * 1.2, "rgba(255,193,7,1)");
 
           boules.forEach(function (b, i) {
@@ -1418,8 +1718,8 @@
               y: (cy + b.y) / 2,
             };
             var cm = Math.max(0, b.d * mmPerPx) / 10;
-            tag(i + 1 + " · " + cm.toFixed(1) + " cm", mid.x, mid.y, col);
-            tag("#" + (i + 1), b.x, b.y - b.r - fs * 1.1, col);
+            tag(cm.toFixed(1) + " cm", mid.x, mid.y, col);
+            badge(String(i + 1), b.x, b.y, col, b.r);
           });
 
           // header + verdict
@@ -1449,9 +1749,21 @@
           jackMark.style.display = "none";
           hideArrows();
           setResultMode(true);
+          freezeZoom.enable(true);
+          freezeZoom.reset();
+          $("zoomBar").classList.add("on");
+          toast("Cubit untuk zoom, skrol dengan jari.");
 
           try {
-            saveShot(freeze.toDataURL("image/jpeg", 0.72));
+            if (freeze.toBlob) {
+              freeze.toBlob(
+                function (blob) {
+                  if (blob) saveShot(blob);
+                },
+                "image/jpeg",
+                0.85
+              );
+            }
           } catch (e) {
             toast("Gagal menyimpan rekod.");
           }
@@ -1460,6 +1772,8 @@
 
 
         function resume() {
+          freezeZoom.enable(false);
+          $("zoomBar").classList.remove("on");
           state.frozen = false;
           freeze.style.display = "none";
           video.classList.remove("hidden");
@@ -1485,11 +1799,200 @@
           else doSnap();
         });
 
+        /* ---------------- zoom & pan (cubit / skrol jari) ---------------- */
+        function makeZoomPan(el, container, opts) {
+          opts = opts || {};
+          var MIN = opts.min || 1,
+            MAX = opts.max || 8;
+          var z = 1,
+            ox = 0,
+            oy = 0,
+            enabled = false;
+          var pts = {},
+            lastDist = 0,
+            lastMid = null,
+            lastTap = 0;
+
+          function apply() {
+            el.style.transform = "translate(" + ox + "px," + oy + "px) scale(" + z + ")";
+            if (opts.onChange) opts.onChange(z);
+          }
+          function clampAll() {
+            var r = container.getBoundingClientRect();
+            var w = r.width * z,
+              h = r.height * z;
+            if (w <= r.width) ox = (r.width - w) / 2;
+            else ox = Math.min(0, Math.max(r.width - w, ox));
+            if (h <= r.height) oy = (r.height - h) / 2;
+            else oy = Math.min(0, Math.max(r.height - h, oy));
+          }
+          function zoomAt(px, py, k) {
+            var nz = Math.min(MAX, Math.max(MIN, z * k));
+            k = nz / z;
+            if (k === 1) return;
+            ox = px - (px - ox) * k;
+            oy = py - (py - oy) * k;
+            z = nz;
+            clampAll();
+            apply();
+          }
+          function local(e) {
+            var r = container.getBoundingClientRect();
+            return { x: e.clientX - r.left, y: e.clientY - r.top };
+          }
+          function count() {
+            return Object.keys(pts).length;
+          }
+
+          container.addEventListener("pointerdown", function (e) {
+            if (!enabled) return;
+            if (e.target && e.target.closest && e.target.closest("button, .glass")) return;
+            pts[e.pointerId] = local(e);
+            if (count() === 1) {
+              var now = Date.now();
+              if (now - lastTap < 300) {
+                var p = pts[e.pointerId];
+                zoomAt(p.x, p.y, z > 1.6 ? MIN / z : 2.5);
+              }
+              lastTap = now;
+            }
+            lastDist = 0;
+            lastMid = null;
+          });
+          container.addEventListener("pointermove", function (e) {
+            if (!enabled || !pts[e.pointerId]) return;
+            var p = local(e);
+            var ids = Object.keys(pts);
+            if (ids.length === 1) {
+              if (z > MIN) {
+                ox += p.x - pts[e.pointerId].x;
+                oy += p.y - pts[e.pointerId].y;
+                clampAll();
+                apply();
+              }
+              pts[e.pointerId] = p;
+            } else {
+              pts[e.pointerId] = p;
+              var a = pts[ids[0]],
+                b = pts[ids[1]];
+              var dist = Math.hypot(a.x - b.x, a.y - b.y);
+              var mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+              if (lastDist) {
+                zoomAt(mid.x, mid.y, dist / lastDist);
+                ox += mid.x - lastMid.x;
+                oy += mid.y - lastMid.y;
+                clampAll();
+                apply();
+              }
+              lastDist = dist;
+              lastMid = mid;
+            }
+          });
+          function up(e) {
+            delete pts[e.pointerId];
+            lastDist = 0;
+            lastMid = null;
+          }
+          container.addEventListener("pointerup", up);
+          container.addEventListener("pointercancel", up);
+          container.addEventListener("pointerleave", up);
+
+          container.addEventListener(
+            "wheel",
+            function (e) {
+              if (!enabled) return;
+              e.preventDefault();
+              var dy = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 100 : 1);
+              var p = local(e);
+              zoomAt(p.x, p.y, Math.exp(-dy * 0.0018));
+            },
+            { passive: false }
+          );
+
+          return {
+            reset: function () {
+              z = 1;
+              ox = 0;
+              oy = 0;
+              clampAll();
+              apply();
+            },
+            zoomBy: function (k) {
+              var r = container.getBoundingClientRect();
+              zoomAt(r.width / 2, r.height / 2, k);
+            },
+            enable: function (on) {
+              enabled = !!on;
+              container.classList.toggle("zoomable", !!on);
+              if (!on) this.reset();
+            },
+            get scale() {
+              return z;
+            },
+          };
+        }
+
+        var stageEl = $("stage");
+        var freezeZoom = makeZoomPan(freeze, stageEl, {
+          onChange: function (z) {
+            $("zoomLevel").textContent = z.toFixed(1) + "×";
+          },
+        });
+        $("zIn").addEventListener("click", function () {
+          freezeZoom.zoomBy(1.5);
+        });
+        $("zOut").addEventListener("click", function () {
+          freezeZoom.zoomBy(1 / 1.5);
+        });
+        $("zReset").addEventListener("click", function () {
+          freezeZoom.reset();
+        });
+
+        /* ---------------- full-screen viewer ---------------- */
+        var viewer = $("viewer"),
+          viewerImg = $("viewerImg"),
+          currentItem = null;
+        var viewerZoom = makeZoomPan(viewerImg, viewer, {
+          max: 10,
+          onChange: function (z) {
+            $("viewerZoom").textContent = z.toFixed(1) + "×";
+          },
+        });
+        function openViewer(item, url) {
+          currentItem = item;
+          viewerImg.src = url;
+          $("viewerDate").textContent = fmt(item.t);
+          viewer.classList.add("open");
+          viewerZoom.enable(true);
+          viewerZoom.reset();
+        }
+        function closeViewer() {
+          viewer.classList.remove("open");
+          viewerZoom.enable(false);
+          currentItem = null;
+        }
+        $("vClose").addEventListener("click", closeViewer);
+        $("vIn").addEventListener("click", function () {
+          viewerZoom.zoomBy(1.6);
+        });
+        $("vOut").addEventListener("click", function () {
+          viewerZoom.zoomBy(1 / 1.6);
+        });
+        $("vShare").addEventListener("click", function () {
+          if (currentItem) shareShot(currentItem);
+        });
+        $("vSave").addEventListener("click", function () {
+          if (currentItem) downloadShot(currentItem);
+        });
+        window.addEventListener("keydown", function (e) {
+          if (e.key === "Escape" && viewer.classList.contains("open")) closeViewer();
+        });
+
         /* ---------------- boot ---------------- */
         function loadOpenCV() {
           return new Promise(function (resolve) {
             var s = document.createElement("script");
-            s.src = "https://docs.opencv.org/4.8.0/opencv.js";
+            s.src = "./vendor/opencv.js";
             s.async = true;
             s.onload = function () {
               var cv = window.cv;
@@ -1510,7 +2013,14 @@
               resolve(false);
             };
             s.onerror = function () {
-              resolve(false);
+              var f = document.createElement("script");
+              f.async = true;
+              f.onload = s.onload;
+              f.onerror = function () {
+                resolve(false);
+              };
+              f.src = "https://docs.opencv.org/4.8.0/opencv.js";
+              document.head.appendChild(f);
             };
             document.head.appendChild(s);
             setTimeout(function () {
