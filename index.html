@@ -2366,20 +2366,43 @@
             document.head.appendChild(s);
             setTimeout(function () {
               resolve(!!(window.cv && window.cv.Mat));
-            }, 25000);
+            }, 15000);
           });
         }
 
         function boot() {
           requestAnimationFrame(loop);
-          startCamera().catch(function () {});
-          loadOpenCV().then(function (ok) {
-            state.cvReady = !!ok;
+
+          var uiOpened = false;
+          function openUI() {
+            if (uiOpened) return;
+            uiOpened = true;
             $("loader").classList.add("hide");
+          }
+          // UI mesti boleh guna serta-merta — jangan tunggu AI/kamera.
+          var uiTimer = setTimeout(openUI, 1200);
+
+          startCamera()
+            .then(function () {
+              clearTimeout(uiTimer);
+              openUI();
+            })
+            .catch(function () {
+              clearTimeout(uiTimer);
+              openUI();
+            });
+
+          $("loaderSub").textContent = "Memuatkan enjin AI di latar belakang…";
+          setStatus("Mod manual — tekan Snap", "guide");
+
+          loadOpenCV().then(function (ok) {
+            openUI();
+            state.cvReady = !!ok;
             if (!ok) {
               toast("AI tidak dimuatkan — mod snap manual sahaja.");
               setStatus("Mod manual — tekan Snap", "guide");
             } else {
+              toast("Enjin AI sedia.");
               setStatus("Mencari Jack...", "search");
             }
           });
