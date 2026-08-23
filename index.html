@@ -2337,37 +2337,116 @@
         });
 
         /* ---------------- boot ---------------- */
-        function loadOpenCV() {
-          return new Promise(function (resolve) {
-            var s = document.createElement("script");
-            s.src = "https://docs.opencv.org/4.8.0/opencv.js";
-            s.async = true;
-            s.onload = function () {
-              var cv = window.cv;
-              if (cv && cv.Mat) return resolve(true);
-              if (cv && typeof cv.then === "function") {
-                cv.then(function (m) {
-                  window.cv = m;
-                  resolve(true);
-                });
-                return;
-              }
-              if (cv) {
-                cv.onRuntimeInitialized = function () {
-                  resolve(true);
-                };
-                return;
-              }
-              resolve(false);
-            };
-            s.onerror = function () {
-              resolve(false);
-            };
-            document.head.appendChild(s);
-            setTimeout(function () {
-              resolve(!!(window.cv && window.cv.Mat));
-            }, 15000);
+        var CV_SOURCES = [
+          "https://cdn.jsdelivr.net/npm/@techstark/opencv-js@4.10.0-release.1/dist/opencv.js",
+          "https://unpkg.com/@techstark/opencv-js@4.10.0-release.1/dist/opencv.js",
+          "https://docs.opencv.org/4.8.0/opencv.js",
+        ];
+        var CV_CACHE = "petanque-cv-engine-v1";
+
+        function fetchWithProgress(url, onProgress) {
+          return fetch(url, { mode: "cors", cache: "force-cache" }).then(function (res) {
+            if (!res.ok) throw new Error("http " + res.status);
+            var total = parseInt(res.headers.get("content-length") || "0", 10);
+            if (!res.body || !total || !window.ReadableStream) return res.text();
+            var reader = res.body.getReader(),
+              chunks = [],
+              got = 0;
+            return (function pump() {
+              return reader.read().then(function (r) {
+                if (r.done) return new Blob(chunks).text();
+                chunks.push(r.value);
+                got += r.value.length;
+                onProgress(Math.min(99, Math.round((got / total) * 100)));
+                return pump();
+              });
+            })();
           });
+        }
+
+        function cacheGet(url) {
+          if (!window.caches) return Promise.resolve(null);
+          return caches
+            .open(CV_CACHE)
+            .then(function (c) {
+              return c.match(url);
+            })
+            .then(function (r) {
+              return r ? r.text() : null;
+            })
+            .catch(function () {
+              return null;
+            });
+        }
+        function cachePut(url, code) {
+          if (!window.caches) return;
+          caches
+            .open(CV_CACHE)
+            .then(function (c) {
+              c.put(url, new Response(code, { headers: { "content-type": "text/javascript" } }));
+            })
+            .catch(function () {});
+        }
+
+        function runCvCode(code) {
+          return new Promise(function (resolve, reject) {
+            try {
+              var blob = new Blob([code], { type: "text/javascript" });
+              var s = document.createElement("script");
+              s.src = URL.createObjectURL(blob);
+              s.onload = function () {
+                var cv = window.cv;
+                if (cv && cv.Mat) return resolve(true);
+                if (cv && typeof cv.then === "function")
+                  return cv.then(function (m) {
+                    window.cv = m;
+                    resolve(true);
+                  }, reject);
+                if (cv) {
+                  cv.onRuntimeInitialized = function () {
+                    resolve(true);
+                  };
+                  return;
+                }
+                reject(new Error("no cv"));
+              };
+              s.onerror = function () {
+                reject(new Error("exec"));
+              };
+              document.head.appendChild(s);
+            } catch (e) {
+              reject(e);
+            }
+          });
+        }
+
+        function loadOpenCV(onProgress) {
+          var i = 0;
+          function attempt() {
+            if (i >= CV_SOURCES.length) return Promise.resolve(false);
+            var url = CV_SOURCES[i++];
+            return cacheGet(url)
+              .then(function (cached) {
+                if (cached) {
+                  onProgress(100, true);
+                  return cached;
+                }
+                return fetchWithProgress(url, function (p) {
+                  onProgress(p, false);
+                }).then(function (code) {
+                  cachePut(url, code);
+                  return code;
+                });
+              })
+              .then(runCvCode)
+              .then(function () {
+                return true;
+              })
+              .catch(function () {
+                return attempt();
+              });
+          }
+          return attempt();
         }
 
         function boot() {
@@ -2377,35 +2456,40 @@
           function openUI() {
             if (uiOpened) return;
             uiOpened = true;
-            $("loader").classList.add("hide");
+            var l = $("loader");
+            l.classList.add("hide");
+            setTimeout(function () {
+              l.style.display = "none";
+            }, 400);
           }
-          // UI mesti boleh guna serta-merta — jangan tunggu AI/kamera.
-          var uiTimer = setTimeout(openUI, 1200);
+          // UI terbuka SERTA-MERTA — tiada tunggu AI/kamera sama sekali.
+          openUI();
+          setStatus("Bersedia — enjin AI sedang dimuat", "guide");
 
-          startCamera()
-            .then(function () {
-              clearTimeout(uiTimer);
-              openUI();
-            })
-            .catch(function () {
-              clearTimeout(uiTimer);
-              openUI();
+          startCamera().catch(function () {});
+
+          var started = Date.now(),
+            aiStarted = false;
+          function startAI() {
+            if (aiStarted) return;
+            aiStarted = true;
+            loadOpenCV(function (p, cached) {
+              if (state.cvReady) return;
+              setStatus(cached ? "Menyiapkan enjin AI…" : "Enjin AI " + p + "%", "guide");
+            }).then(function (ok) {
+              state.cvReady = !!ok;
+              if (!ok) {
+                toast("AI tidak dimuatkan — mod snap manual sahaja.");
+                setStatus("Mod manual — tekan Snap", "guide");
+              } else {
+                toast("Enjin AI sedia (" + ((Date.now() - started) / 1000).toFixed(1) + "s)");
+                setStatus("Mencari Jack...", "search");
+              }
             });
-
-          $("loaderSub").textContent = "Memuatkan enjin AI di latar belakang…";
-          setStatus("Mod manual — tekan Snap", "guide");
-
-          loadOpenCV().then(function (ok) {
-            openUI();
-            state.cvReady = !!ok;
-            if (!ok) {
-              toast("AI tidak dimuatkan — mod snap manual sahaja.");
-              setStatus("Mod manual — tekan Snap", "guide");
-            } else {
-              toast("Enjin AI sedia.");
-              setStatus("Mencari Jack...", "search");
-            }
-          });
+          }
+          // Mula selepas frame pertama supaya sentuhan/butang tak pernah tersekat.
+          if (window.requestIdleCallback) requestIdleCallback(startAI, { timeout: 800 });
+          else setTimeout(startAI, 250);
         }
 
         document.addEventListener("visibilitychange", function () {
