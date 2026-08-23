@@ -1,43 +1,62 @@
-const CACHE_NAME = 'petanque-pro-v1';
-const urlsToCache = [
-  './',
-  './index.html',
-  './manifest.json'
-];
+/* Petanque Referee Pro - Service Worker */
+const CACHE = "petanque-ref-pro-v1";
+const ASSETS = ["./", "./index.html", "./manifest.json"];
 
-// Pasang Cache
-self.addEventListener('install', event => {
+self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => {
-        return cache.addAll(urlsToCache);
-      })
+    (async () => {
+      const cache = await caches.open(CACHE);
+      await Promise.allSettled(ASSETS.map((a) => cache.add(new Request(a, { cache: "reload" }))));
+      await self.skipWaiting();
+    })(),
   );
 });
 
-// Semak dan Kemaskini Cache jika ada perubahan
-self.addEventListener('activate', event => {
-  const cacheWhitelist = [CACHE_NAME];
+self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then(cacheNames => {
-      return Promise.all(
-        cacheNames.map(cacheName => {
-          if (cacheWhitelist.indexOf(cacheName) === -1) {
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    })
+    (async () => {
+      const keys = await caches.keys();
+      await Promise.allSettled(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)));
+      await self.clients.claim();
+    })(),
   );
 });
 
-// Network Intercept (Gunakan cache jika tiada internet)
-self.addEventListener('fetch', event => {
+self.addEventListener("fetch", (event) => {
+  const req = event.request;
+  if (req.method !== "GET") return;
+
+  // Navigations: network first, fall back to cached shell (offline support).
+  if (req.mode === "navigate") {
+    event.respondWith(
+      (async () => {
+        try {
+          const fresh = await fetch(req);
+          const cache = await caches.open(CACHE);
+          cache.put("./index.html", fresh.clone());
+          return fresh;
+        } catch (e) {
+          const cache = await caches.open(CACHE);
+          return (await cache.match("./index.html")) || Response.error();
+        }
+      })(),
+    );
+    return;
+  }
+
+  // Other GETs: cache first, then network (and store same-origin/CDN responses).
   event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        // Jika ada dalam cache, kembalikan. Jika tidak, ambil dari internet.
-        return response || fetch(event.request);
-      })
+    (async () => {
+      const cache = await caches.open(CACHE);
+      const hit = await cache.match(req);
+      if (hit) return hit;
+      try {
+        const res = await fetch(req);
+        if (res && (res.ok || res.type === "opaque")) cache.put(req, res.clone());
+        return res;
+      } catch (e) {
+        return Response.error();
+      }
+    })(),
   );
 });

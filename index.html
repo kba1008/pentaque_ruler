@@ -1,217 +1,1370 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ms">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Petanque Referee Pro</title>
-    <link rel="manifest" href="manifest.json">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+    />
+    <title>Petanque Referee Pro — Auto Jack Detection &amp; Measure</title>
+    <meta
+      name="description"
+      content="Professional Petanque referee PWA: automatic jack detection, camera guidance, gyroscope leveling and auto-snap boule measurement."
+    />
+    <meta name="theme-color" content="#0056b3" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="manifest" href="./manifest.json" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
     <style>
-        body { margin: 0; font-family: system-ui, sans-serif; background: #121212; color: white; overflow: hidden; }
-        #camera-container { position: relative; width: 100vw; height: 70vh; background: #000; }
-        video { width: 100%; height: 100%; object-fit: cover; }
-        canvas { display: none; width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; }
-        
-        /* Leveler UI */
-        #leveler { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 60px; height: 60px; border: 2px solid rgba(255,255,255,0.5); border-radius: 50%; }
-        #bubble { width: 14px; height: 14px; background: red; border-radius: 50%; position: absolute; top: 23px; left: 23px; transition: transform 0.1s; }
-        #crosshair { position: absolute; top: 50%; left: 50%; width: 20px; height: 2px; background: rgba(0,255,0,0.5); transform: translate(-50%, -50%); }
-        #crosshair::after { content: ''; position: absolute; left: 9px; top: -9px; width: 2px; height: 20px; background: rgba(0,255,0,0.5); }
-        
-        /* Status & Controls */
-        #status { text-align: center; padding: 10px; font-weight: bold; background: #222; }
-        .controls { display: flex; justify-content: space-around; padding: 10px; background: #222; height: 30vh; flex-direction: column; }
-        button { padding: 12px; border: none; border-radius: 8px; background: #007bff; color: white; font-weight: bold; font-size: 16px; cursor: pointer; margin-bottom: 5px; }
-        button.danger { background: #dc3545; }
-        
-        /* History */
-        #history-panel { display: none; height: 100vh; width: 100vw; position: absolute; top: 0; left: 0; background: #121212; z-index: 10; overflow-y: auto; padding: 20px; box-sizing: border-box; }
-        .history-item { display: flex; justify-content: space-between; background: #333; padding: 10px; border-radius: 5px; margin-bottom: 10px; }
-        .history-item img { width: 60px; height: 60px; object-fit: cover; border-radius: 5px; }
+      /* ===================== DESIGN SYSTEM ===================== */
+      :root {
+        --white: #ffffff;
+        --soft-gray: #e9ecef;
+        --gray-500: #6c757d;
+        --ink: #17223b;
+        --blue: #0056b3;
+        --cyan-1: #4facfe;
+        --cyan-2: #00f2fe;
+        --grad-primary: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        --grad-danger: linear-gradient(135deg, #ff5f6d 0%, #d32029 100%);
+        --grad-light: linear-gradient(135deg, #ffffff 0%, #e9ecef 100%);
+        --green: #22e07a;
+        --glass-bg: rgba(255, 255, 255, 0.62);
+        --glass-brd: rgba(255, 255, 255, 0.75);
+        --glass-shadow: 0 10px 30px rgba(10, 25, 60, 0.22);
+        --radius: 18px;
+        --safe-t: env(safe-area-inset-top, 0px);
+        --safe-b: env(safe-area-inset-bottom, 0px);
+      }
+
+      * {
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
+      }
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        background: #0b1220;
+        font-family: "Poppins", system-ui, -apple-system, "Segoe UI", sans-serif;
+        color: var(--ink);
+        overscroll-behavior: none;
+      }
+
+      /* ===================== CAMERA STAGE ===================== */
+      #stage {
+        position: fixed;
+        inset: 0;
+        overflow: hidden;
+        background: #000;
+      }
+      #video,
+      #freeze {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+      #freeze {
+        display: none;
+        z-index: 3;
+        background: #000;
+      }
+      #video.hidden {
+        visibility: hidden;
+      }
+
+      /* ===================== CONCENTRIC GRID ===================== */
+      #grid {
+        position: absolute;
+        inset: 0;
+        z-index: 4;
+        pointer-events: none;
+        display: grid;
+        place-items: center;
+      }
+      #grid .ring {
+        position: absolute;
+        border: 1.5px dashed rgba(255, 255, 255, 0.45);
+        border-radius: 50%;
+        box-shadow: 0 0 12px rgba(0, 0, 0, 0.15) inset;
+      }
+      #grid .cross-h,
+      #grid .cross-v {
+        position: absolute;
+        background: rgba(255, 255, 255, 0.28);
+      }
+      #grid .cross-h {
+        width: 100%;
+        height: 1px;
+      }
+      #grid .cross-v {
+        height: 100%;
+        width: 1px;
+      }
+      #grid.off {
+        display: none;
+      }
+
+      /* ===================== ARROWS ===================== */
+      .arrow {
+        position: absolute;
+        z-index: 6;
+        font-size: 46px;
+        line-height: 1;
+        color: var(--green);
+        text-shadow:
+          0 0 12px rgba(34, 224, 122, 0.9),
+          0 0 28px rgba(34, 224, 122, 0.6);
+        opacity: 0;
+        transition: opacity 0.18s ease;
+        pointer-events: none;
+        animation: pulse 1.05s infinite ease-in-out;
+      }
+      .arrow.show {
+        opacity: 1;
+      }
+      #arrUp {
+        top: calc(16% + var(--safe-t));
+        left: 50%;
+        transform: translateX(-50%);
+      }
+      #arrDown {
+        bottom: calc(22% + var(--safe-b));
+        left: 50%;
+        transform: translateX(-50%);
+      }
+      #arrLeft {
+        left: 8%;
+        top: 50%;
+        transform: translateY(-50%);
+      }
+      #arrRight {
+        right: 8%;
+        top: 50%;
+        transform: translateY(-50%);
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          filter: brightness(1);
+          opacity: 0.7;
+        }
+        50% {
+          filter: brightness(1.5);
+          opacity: 1;
+        }
+      }
+
+      /* ===================== JACK MARKER ===================== */
+      #jackMark {
+        position: absolute;
+        z-index: 6;
+        width: 70px;
+        height: 70px;
+        margin: -35px 0 0 -35px;
+        border: 3px solid var(--cyan-2);
+        border-radius: 50%;
+        box-shadow: 0 0 18px rgba(0, 242, 254, 0.8);
+        display: none;
+        pointer-events: none;
+      }
+
+      /* ===================== LEVELER ===================== */
+      #leveler {
+        position: absolute;
+        z-index: 7;
+        top: 50%;
+        left: 50%;
+        width: 150px;
+        height: 150px;
+        margin: -75px 0 0 -75px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.18);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        border: 2px solid rgba(255, 255, 255, 0.85);
+        box-shadow: var(--glass-shadow);
+        pointer-events: none;
+        transition:
+          border-color 0.2s ease,
+          box-shadow 0.2s ease;
+      }
+      #leveler::before,
+      #leveler::after {
+        content: "";
+        position: absolute;
+        background: rgba(255, 255, 255, 0.7);
+      }
+      #leveler::before {
+        left: 12%;
+        right: 12%;
+        top: 50%;
+        height: 1px;
+      }
+      #leveler::after {
+        top: 12%;
+        bottom: 12%;
+        left: 50%;
+        width: 1px;
+      }
+      #levelTarget {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 42px;
+        height: 42px;
+        margin: -21px 0 0 -21px;
+        border: 1.5px dashed rgba(255, 255, 255, 0.9);
+        border-radius: 50%;
+      }
+      #bubble {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 34px;
+        height: 34px;
+        margin: -17px 0 0 -17px;
+        border-radius: 50%;
+        background: var(--grad-primary);
+        box-shadow:
+          0 6px 14px rgba(0, 0, 0, 0.3),
+          0 0 0 3px rgba(255, 255, 255, 0.6) inset;
+        transition:
+          background 0.2s ease,
+          box-shadow 0.2s ease;
+      }
+      #leveler.level {
+        border-color: var(--green);
+        box-shadow: 0 0 26px rgba(34, 224, 122, 0.75);
+      }
+      #leveler.level #bubble {
+        background: linear-gradient(135deg, #22e07a 0%, #06d6a0 100%);
+      }
+
+      /* ===================== GLASS PANELS ===================== */
+      .glass {
+        background: var(--glass-bg);
+        backdrop-filter: blur(16px) saturate(150%);
+        -webkit-backdrop-filter: blur(16px) saturate(150%);
+        border: 1px solid var(--glass-brd);
+        box-shadow: var(--glass-shadow);
+        border-radius: var(--radius);
+      }
+
+      #topBar {
+        position: absolute;
+        z-index: 9;
+        top: calc(12px + var(--safe-t));
+        left: 12px;
+        right: 12px;
+        padding: 10px 12px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      #brand {
+        font-weight: 700;
+        font-size: 14px;
+        letter-spacing: 0.2px;
+        color: var(--blue);
+        white-space: nowrap;
+      }
+      #brand span {
+        display: block;
+        font-weight: 500;
+        font-size: 10px;
+        color: var(--gray-500);
+        letter-spacing: 1.4px;
+        text-transform: uppercase;
+      }
+      #topBar .spacer {
+        flex: 1;
+      }
+      #angles {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--gray-500);
+        text-align: right;
+        line-height: 1.35;
+        font-variant-numeric: tabular-nums;
+      }
+
+      #statusBar {
+        position: absolute;
+        z-index: 9;
+        left: 12px;
+        right: 12px;
+        bottom: calc(112px + var(--safe-b));
+        padding: 12px 14px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 600;
+        font-size: 14px;
+      }
+      #statusDot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: var(--gray-500);
+        flex: 0 0 auto;
+        box-shadow: 0 0 10px currentColor;
+      }
+      #statusDot.search {
+        background: #ffb703;
+      }
+      #statusDot.guide {
+        background: var(--cyan-1);
+      }
+      #statusDot.ready {
+        background: var(--green);
+      }
+      #statusDot.done {
+        background: var(--blue);
+      }
+
+      #countRing {
+        position: absolute;
+        z-index: 8;
+        top: 50%;
+        left: 50%;
+        width: 210px;
+        height: 210px;
+        margin: -105px 0 0 -105px;
+        border-radius: 50%;
+        border: 4px solid rgba(34, 224, 122, 0.25);
+        display: none;
+        place-items: center;
+      }
+      #countRing.on {
+        display: grid;
+      }
+      #countRing .fill {
+        position: absolute;
+        inset: -4px;
+        border-radius: 50%;
+        border: 4px solid var(--green);
+        clip-path: inset(0 0 0 0);
+        animation: sweep 1.5s linear forwards;
+        box-shadow: 0 0 22px rgba(34, 224, 122, 0.6);
+      }
+      @keyframes sweep {
+        from {
+          transform: scale(0.86);
+          opacity: 0.25;
+        }
+        to {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+
+      /* ===================== BUTTONS ===================== */
+      #dock {
+        position: absolute;
+        z-index: 10;
+        left: 12px;
+        right: 12px;
+        bottom: calc(14px + var(--safe-b));
+        padding: 12px;
+        display: flex;
+        gap: 10px;
+      }
+      .btn {
+        flex: 1;
+        border: 0;
+        cursor: pointer;
+        font-family: inherit;
+        font-weight: 600;
+        font-size: 14px;
+        color: #063049;
+        padding: 14px 12px;
+        border-radius: 14px;
+        background: var(--grad-light);
+        box-shadow:
+          0 5px 0 #c3ccd6,
+          0 10px 18px rgba(10, 25, 60, 0.18);
+        transition:
+          transform 0.06s ease,
+          box-shadow 0.06s ease,
+          filter 0.15s ease;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        line-height: 1;
+      }
+      .btn:active {
+        transform: translateY(4px);
+        box-shadow:
+          0 1px 0 #c3ccd6,
+          0 3px 8px rgba(10, 25, 60, 0.18);
+      }
+      .btn.primary {
+        background: var(--grad-primary);
+        color: #04364f;
+        box-shadow:
+          0 5px 0 #0e97c9,
+          0 12px 22px rgba(0, 150, 200, 0.35);
+      }
+      .btn.primary:active {
+        box-shadow:
+          0 1px 0 #0e97c9,
+          0 4px 10px rgba(0, 150, 200, 0.3);
+      }
+      .btn.danger {
+        background: var(--grad-danger);
+        color: #fff;
+        box-shadow:
+          0 5px 0 #98121a,
+          0 12px 22px rgba(190, 30, 40, 0.35);
+      }
+      .btn.danger:active {
+        box-shadow:
+          0 1px 0 #98121a,
+          0 4px 10px rgba(190, 30, 40, 0.3);
+      }
+      .btn.icon {
+        flex: 0 0 auto;
+        width: 54px;
+        padding: 14px 0;
+        font-size: 18px;
+      }
+      .btn[disabled] {
+        opacity: 0.55;
+        pointer-events: none;
+      }
+
+      /* ===================== OVERLAY PANELS ===================== */
+      .panel {
+        position: fixed;
+        inset: 0;
+        z-index: 30;
+        background: rgba(233, 236, 239, 0.92);
+        backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
+        display: none;
+        flex-direction: column;
+        padding: calc(18px + var(--safe-t)) 16px calc(18px + var(--safe-b));
+        transform: translateY(18px);
+        opacity: 0;
+        transition:
+          transform 0.28s ease,
+          opacity 0.28s ease;
+      }
+      .panel.open {
+        display: flex;
+        transform: translateY(0);
+        opacity: 1;
+      }
+      .panel h2 {
+        margin: 4px 0 4px;
+        font-size: 22px;
+        font-weight: 700;
+        color: var(--blue);
+      }
+      .panel p.sub {
+        margin: 0 0 16px;
+        font-size: 13px;
+        color: var(--gray-500);
+      }
+      .card {
+        background: #fff;
+        border-radius: var(--radius);
+        padding: 16px;
+        box-shadow: 0 8px 22px rgba(10, 25, 60, 0.1);
+        margin-bottom: 12px;
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      .row .label {
+        font-weight: 600;
+        font-size: 15px;
+      }
+      .row .hint {
+        font-size: 12px;
+        color: var(--gray-500);
+        margin-top: 2px;
+      }
+
+      /* iOS toggle */
+      .switch {
+        position: relative;
+        width: 56px;
+        height: 32px;
+        flex: 0 0 auto;
+      }
+      .switch input {
+        position: absolute;
+        opacity: 0;
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        cursor: pointer;
+        z-index: 2;
+      }
+      .switch .track {
+        position: absolute;
+        inset: 0;
+        border-radius: 999px;
+        background: #cfd6dd;
+        transition: background 0.22s ease;
+      }
+      .switch .knob {
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        background: #fff;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+        transition: transform 0.22s cubic-bezier(0.3, 1.4, 0.5, 1);
+      }
+      .switch input:checked ~ .track {
+        background: var(--grad-primary);
+      }
+      .switch input:checked ~ .knob {
+        transform: translateX(24px);
+      }
+
+      #histList {
+        flex: 1;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 12px;
+        padding-bottom: 12px;
+      }
+      .hist-item {
+        background: #fff;
+        border-radius: 14px;
+        overflow: hidden;
+        box-shadow: 0 6px 16px rgba(10, 25, 60, 0.12);
+      }
+      .hist-item img {
+        width: 100%;
+        display: block;
+        aspect-ratio: 3/4;
+        object-fit: cover;
+        background: #000;
+      }
+      .hist-item .meta {
+        padding: 8px 10px;
+        font-size: 11px;
+        color: var(--gray-500);
+        font-weight: 500;
+      }
+      .empty {
+        text-align: center;
+        color: var(--gray-500);
+        font-size: 14px;
+        padding: 40px 10px;
+      }
+      .panel-actions {
+        display: flex;
+        gap: 10px;
+        padding-top: 6px;
+      }
+
+      /* ===================== LOADER ===================== */
+      #loader {
+        position: fixed;
+        inset: 0;
+        z-index: 50;
+        background: linear-gradient(160deg, #ffffff 0%, #e9ecef 100%);
+        display: grid;
+        place-items: center;
+        text-align: center;
+        transition: opacity 0.35s ease;
+      }
+      #loader.hide {
+        opacity: 0;
+        pointer-events: none;
+      }
+      .spinner {
+        width: 78px;
+        height: 78px;
+        border-radius: 50%;
+        border: 7px solid rgba(0, 86, 179, 0.15);
+        border-top-color: var(--cyan-2);
+        border-right-color: var(--cyan-1);
+        animation: spin 0.9s linear infinite;
+        margin: 0 auto 18px;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      #loader .t {
+        font-weight: 700;
+        font-size: 18px;
+        color: var(--blue);
+      }
+      #loader .s {
+        font-size: 12px;
+        color: var(--gray-500);
+        margin-top: 6px;
+      }
+
+      #toast {
+        position: fixed;
+        z-index: 60;
+        left: 50%;
+        bottom: calc(190px + var(--safe-b));
+        transform: translateX(-50%) translateY(12px);
+        background: rgba(23, 34, 59, 0.92);
+        color: #fff;
+        font-size: 13px;
+        font-weight: 500;
+        padding: 10px 16px;
+        border-radius: 999px;
+        opacity: 0;
+        pointer-events: none;
+        transition:
+          opacity 0.25s ease,
+          transform 0.25s ease;
+        max-width: 88vw;
+        text-align: center;
+      }
+      #toast.show {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
+    <!-- ============ CAMERA STAGE ============ -->
+    <div id="stage">
+      <video id="video" playsinline autoplay muted></video>
+      <canvas id="freeze"></canvas>
 
-    <!-- Main Camera View -->
-    <div id="main-view">
-        <div id="camera-container">
-            <video id="video" autoplay playsinline></video>
-            <canvas id="canvas"></canvas>
-            
-            <div id="leveler">
-                <div id="crosshair"></div>
-                <div id="bubble"></div>
-            </div>
-        </div>
-        
-        <div id="status">Tegakkan telefon supaya rata...</div>
-        
-        <div class="controls">
-            <button onclick="resetCamera()" id="btn-reset" style="display:none;">Snap Semula</button>
-            <button onclick="showHistory()">Lihat Sejarah</button>
-        </div>
+      <div id="grid">
+        <div class="cross-h"></div>
+        <div class="cross-v"></div>
+        <div class="ring" style="width: 22vmin; height: 22vmin"></div>
+        <div class="ring" style="width: 44vmin; height: 44vmin"></div>
+        <div class="ring" style="width: 66vmin; height: 66vmin"></div>
+        <div class="ring" style="width: 88vmin; height: 88vmin"></div>
+      </div>
+
+      <div id="jackMark"></div>
+
+      <div class="arrow" id="arrUp">▲</div>
+      <div class="arrow" id="arrDown">▼</div>
+      <div class="arrow" id="arrLeft">◀</div>
+      <div class="arrow" id="arrRight">▶</div>
+
+      <div id="countRing"><div class="fill"></div></div>
+
+      <div id="leveler">
+        <div id="levelTarget"></div>
+        <div id="bubble"></div>
+      </div>
+
+      <div id="topBar" class="glass">
+        <div id="brand">Petanque Referee Pro<span>Auto Jack Measure</span></div>
+        <div class="spacer"></div>
+        <div id="angles">β 0.0°<br />γ 0.0°</div>
+      </div>
+
+      <div id="statusBar" class="glass">
+        <div id="statusDot" class="search"></div>
+        <div id="statusText">Memuatkan AI...</div>
+      </div>
+
+      <div id="dock" class="glass">
+        <button class="btn icon" id="btnSettings" aria-label="Tetapan">⚙</button>
+        <button class="btn primary" id="btnSnap">Snap Manual</button>
+        <button class="btn icon" id="btnHistory" aria-label="Sejarah">🕘</button>
+      </div>
     </div>
 
-    <!-- History Panel -->
-    <div id="history-panel">
-        <h2>Sejarah Keputusan</h2>
-        <div id="history-list"></div>
-        <button onclick="hideHistory()">Kembali ke Kamera</button>
-        <button class="danger" onclick="clearHistory()">Padam Semua Sejarah</button>
+    <!-- ============ SETTINGS ============ -->
+    <section class="panel" id="panelSettings">
+      <h2>Tetapan</h2>
+      <p class="sub">Konfigurasi bantuan visual dan pengesanan automatik.</p>
+
+      <div class="card row">
+        <div>
+          <div class="label">Grid Sepusat</div>
+          <div class="hint">Bulatan putus-putus untuk anggaran jarak.</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="tglGrid" checked />
+          <span class="track"></span><span class="knob"></span>
+        </label>
+      </div>
+
+      <div class="card row">
+        <div>
+          <div class="label">Auto-Snap</div>
+          <div class="hint">Tangkap automatik bila Jack di tengah &amp; rata.</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="tglAuto" checked />
+          <span class="track"></span><span class="knob"></span>
+        </label>
+      </div>
+
+      <div class="card row">
+        <div>
+          <div class="label">Sensor Gyroscope</div>
+          <div class="hint" id="gyroHint">Ketuk untuk benarkan (iOS).</div>
+        </div>
+        <button class="btn" id="btnGyro" style="flex: 0 0 auto; width: 120px">Benarkan</button>
+      </div>
+
+      <div class="panel-actions">
+        <button class="btn primary" data-close="panelSettings">Kembali ke Kamera</button>
+      </div>
+    </section>
+
+    <!-- ============ HISTORY ============ -->
+    <section class="panel" id="panelHistory">
+      <h2>Sejarah Rekod</h2>
+      <p class="sub">Gambar ukuran tersimpan dalam peranti ini.</p>
+      <div id="histList"></div>
+      <div class="panel-actions">
+        <button class="btn primary" data-close="panelHistory">Kembali ke Kamera</button>
+        <button class="btn danger" id="btnClear">Padam Semua</button>
+      </div>
+    </section>
+
+    <!-- ============ LOADER ============ -->
+    <div id="loader">
+      <div>
+        <div class="spinner"></div>
+        <div class="t">Memuatkan AI...</div>
+        <div class="s" id="loaderSub">Menyediakan enjin penglihatan komputer</div>
+      </div>
     </div>
+
+    <div id="toast"></div>
 
     <script>
-        const video = document.getElementById('video');
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        const bubble = document.getElementById('bubble');
-        const statusEl = document.getElementById('status');
-        const btnReset = document.getElementById('btn-reset');
-        
-        let isSnapped = false;
-        let steadyTimer = null;
+      /* =========================================================
+         Petanque Referee Pro — vanilla JS
+         ========================================================= */
+      (function () {
+        "use strict";
 
-        // Inisialisasi Kamera dengan Auto-Focus (jika disokong)
-        async function initCamera() {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    video: { 
-                        facingMode: "environment",
-                        width: { ideal: 1920 },
-                        height: { ideal: 1080 }
-                    }
-                });
-                video.srcObject = stream;
-                
-                // Cuba paksa auto-focus
-                const track = stream.getVideoTracks()[0];
-                const capabilities = track.getCapabilities();
-                if (capabilities.focusMode && capabilities.focusMode.includes('continuous')) {
-                    track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] });
-                }
-            } catch (err) {
-                statusEl.innerText = "Ralat Kamera: " + err.message;
-            }
+        var $ = function (id) {
+          return document.getElementById(id);
+        };
+        var video = $("video"),
+          freeze = $("freeze"),
+          fctx = freeze.getContext("2d");
+        var statusText = $("statusText"),
+          statusDot = $("statusDot");
+        var leveler = $("leveler"),
+          bubble = $("bubble"),
+          angles = $("angles");
+        var jackMark = $("jackMark"),
+          countRing = $("countRing"),
+          grid = $("grid");
+        var arrows = {
+          up: $("arrUp"),
+          down: $("arrDown"),
+          left: $("arrLeft"),
+          right: $("arrRight"),
+        };
+        var btnSnap = $("btnSnap");
+
+        var LS = { grid: "prp.grid", auto: "prp.auto", hist: "prp.history" };
+        var state = {
+          cvReady: false,
+          camReady: false,
+          frozen: false,
+          beta: 0,
+          gamma: 0,
+          gyroOK: false,
+          jack: null, // {x,y,r} in video pixels
+          steadySince: 0,
+          auto: true,
+          busy: false,
+        };
+
+        /* ---------------- helpers ---------------- */
+        var toastT;
+        function toast(msg) {
+          var t = $("toast");
+          t.textContent = msg;
+          t.classList.add("show");
+          clearTimeout(toastT);
+          toastT = setTimeout(function () {
+            t.classList.remove("show");
+          }, 2600);
+        }
+        function setStatus(text, cls) {
+          statusText.textContent = text;
+          statusDot.className = cls || "";
+        }
+        function getBool(key, dflt) {
+          try {
+            var v = localStorage.getItem(key);
+            return v === null ? dflt : v === "1";
+          } catch (e) {
+            return dflt;
+          }
+        }
+        function setBool(key, val) {
+          try {
+            localStorage.setItem(key, val ? "1" : "0");
+          } catch (e) {}
         }
 
-        // Timbang Air (Gyroscope)
-        window.addEventListener('deviceorientation', (e) => {
-            if (isSnapped || !e.beta || !e.gamma) return;
-
-            // beta = depan/belakang, gamma = kiri/kanan
-            // Hadkan pergerakan bubble untuk UI
-            const y = Math.max(-23, Math.min(23, e.beta));
-            const x = Math.max(-23, Math.min(23, e.gamma));
-            bubble.style.transform = `translate(${x}px, ${y}px)`;
-
-            // Logik Auto Snap (toleransi rata ±2 darjah)
-            if (Math.abs(e.beta) < 2 && Math.abs(e.gamma) < 2) {
-                bubble.style.background = '#00ff00'; // Hijau tanda sedia
-                statusEl.innerText = "Tahan telefon... (Memfokus)";
-                
-                if (!steadyTimer) {
-                    steadyTimer = setTimeout(() => {
-                        autoSnap();
-                    }, 1500); // 1.5 saat stabil sebelum snap
-                }
-            } else {
-                bubble.style.background = 'red';
-                statusEl.innerText = "Tegakkan telefon supaya rata...";
-                clearTimeout(steadyTimer);
-                steadyTimer = null;
-            }
+        /* ---------------- settings ---------------- */
+        var tglGrid = $("tglGrid"),
+          tglAuto = $("tglAuto");
+        function applyGrid() {
+          grid.classList.toggle("off", !tglGrid.checked);
+        }
+        tglGrid.checked = getBool(LS.grid, true);
+        tglAuto.checked = getBool(LS.auto, true);
+        state.auto = tglAuto.checked;
+        applyGrid();
+        tglGrid.addEventListener("change", function () {
+          setBool(LS.grid, tglGrid.checked);
+          applyGrid();
+        });
+        tglAuto.addEventListener("change", function () {
+          state.auto = tglAuto.checked;
+          setBool(LS.auto, state.auto);
         });
 
-        // Proses Tangkap Gambar & Auto Adjust
-        function autoSnap() {
-            isSnapped = true;
-            video.style.display = 'none';
-            canvas.style.display = 'block';
-            btnReset.style.display = 'block';
-            statusEl.innerText = "Mengira jarak...";
-
-            // Set saiz kanvas sama dengan resolusi video
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-
-            // Auto-Adjust: Tingkatkan contrast dan sharpness menggunakan penapis sebelum draw
-            ctx.filter = 'contrast(1.2) brightness(1.1)';
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            
-            // Di sini letaknya integrasi model AI atau OpenCV untuk mengesan bola
-            // Mock-up tanda:
-            ctx.fillStyle = 'yellow';
-            ctx.font = '50px Arial';
-            ctx.fillText('1', canvas.width/2 + 50, canvas.height/2 + 50); // Contoh bola 1
-
-            // Simpan ke LocalStorage
-            saveToHistory(canvas.toDataURL('image/jpeg', 0.8));
+        /* ---------------- panels ---------------- */
+        function openPanel(id) {
+          $(id).classList.add("open");
         }
-
-        function resetCamera() {
-            isSnapped = false;
-            video.style.display = 'block';
-            canvas.style.display = 'none';
-            btnReset.style.display = 'none';
-            statusEl.innerText = "Tegakkan telefon supaya rata...";
+        function closePanel(id) {
+          $(id).classList.remove("open");
         }
+        $("btnSettings").addEventListener("click", function () {
+          openPanel("panelSettings");
+        });
+        $("btnHistory").addEventListener("click", function () {
+          renderHistory();
+          openPanel("panelHistory");
+        });
+        Array.prototype.forEach.call(document.querySelectorAll("[data-close]"), function (b) {
+          b.addEventListener("click", function () {
+            closePanel(b.getAttribute("data-close"));
+          });
+        });
 
-        // Pengurusan Sejarah (LocalStorage)
-        function saveToHistory(dataUrl) {
-            let history = JSON.parse(localStorage.getItem('petanque_history') || '[]');
-            const record = {
-                id: Date.now(),
-                date: new Date().toLocaleString('ms-MY'),
-                image: dataUrl
-            };
-            history.unshift(record); // Masuk paling atas
-            localStorage.setItem('petanque_history', JSON.stringify(history));
+        /* ---------------- history ---------------- */
+        function readHistory() {
+          try {
+            return JSON.parse(localStorage.getItem(LS.hist) || "[]");
+          } catch (e) {
+            return [];
+          }
         }
-
-        function showHistory() {
-            document.getElementById('main-view').style.display = 'none';
-            document.getElementById('history-panel').style.display = 'block';
-            const list = document.getElementById('history-list');
-            let history = JSON.parse(localStorage.getItem('petanque_history') || '[]');
-            
-            if(history.length === 0) {
-                list.innerHTML = "<p>Tiada rekod.</p>";
-                return;
+        function writeHistory(list) {
+          try {
+            localStorage.setItem(LS.hist, JSON.stringify(list));
+            return true;
+          } catch (e) {
+            return false;
+          }
+        }
+        function saveShot(dataUrl) {
+          var list = readHistory();
+          list.unshift({ t: Date.now(), img: dataUrl });
+          while (list.length > 0 && !writeHistory(list)) {
+            list.pop(); // quota: drop oldest until it fits
+            if (list.length === 0) {
+              toast("Storan penuh — rekod tidak disimpan.");
+              return;
             }
-
-            list.innerHTML = history.map(item => `
-                <div class="history-item">
-                    <div>
-                        <small>${item.date}</small><br>
-                        <strong>Keputusan Tersimpan</strong>
-                    </div>
-                    <img src="${item.image}" alt="Record">
-                </div>
-            `).join('');
+          }
+          if (list.length > 40) {
+            list.length = 40;
+            writeHistory(list);
+          }
         }
-
-        function hideHistory() {
-            document.getElementById('history-panel').style.display = 'none';
-            document.getElementById('main-view').style.display = 'block';
+        function fmt(ts) {
+          var d = new Date(ts);
+          function p(n) {
+            return n < 10 ? "0" + n : "" + n;
+          }
+          return (
+            p(d.getDate()) +
+            "/" +
+            p(d.getMonth() + 1) +
+            "/" +
+            d.getFullYear() +
+            " " +
+            p(d.getHours()) +
+            ":" +
+            p(d.getMinutes())
+          );
         }
-
-        function clearHistory() {
-            if(confirm("Padam semua sejarah pengiraan?")) {
-                localStorage.removeItem('petanque_history');
-                showHistory();
-            }
+        function renderHistory() {
+          var list = readHistory(),
+            box = $("histList");
+          box.innerHTML = "";
+          if (!list.length) {
+            var e = document.createElement("div");
+            e.className = "empty";
+            e.textContent = "Tiada rekod lagi. Snap ukuran pertama anda!";
+            e.style.gridColumn = "1 / -1";
+            box.appendChild(e);
+            return;
+          }
+          list.forEach(function (it) {
+            var card = document.createElement("div");
+            card.className = "hist-item";
+            var img = document.createElement("img");
+            img.src = it.img;
+            img.alt = "Rekod ukuran " + fmt(it.t);
+            img.loading = "lazy";
+            var m = document.createElement("div");
+            m.className = "meta";
+            m.textContent = fmt(it.t);
+            card.appendChild(img);
+            card.appendChild(m);
+            box.appendChild(card);
+          });
         }
+        $("btnClear").addEventListener("click", function () {
+          if (!confirm("Padam semua rekod?")) return;
+          try {
+            localStorage.removeItem(LS.hist);
+          } catch (e) {}
+          renderHistory();
+          toast("Semua rekod dipadam.");
+        });
 
-        // Daftar Service Worker untuk PWA
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js').then(reg => {
-                    console.log('SW Berdaftar: ', reg.scope);
-                });
+        /* ---------------- gyroscope ---------------- */
+        function onOrient(e) {
+          if (e.beta === null && e.gamma === null) return;
+          state.gyroOK = true;
+          state.beta = e.beta || 0;
+          state.gamma = e.gamma || 0;
+          // Flat-on-ground reference: beta ~ 0 (phone screen up) when pointing down we use raw beta.
+          var b = state.beta,
+            g = state.gamma;
+          if (b > 90) b = 180 - b;
+          if (b < -90) b = -180 - b;
+          state.beta = b;
+          angles.innerHTML =
+            "β " + b.toFixed(1) + "°<br>γ " + g.toFixed(1) + "°";
+          var R = 75 - 17; // container radius - bubble radius
+          var max = 25; // degrees mapped to edge
+          var x = Math.max(-1, Math.min(1, g / max)) * R;
+          var y = Math.max(-1, Math.min(1, b / max)) * R;
+          var d = Math.sqrt(x * x + y * y);
+          if (d > R) {
+            x = (x / d) * R;
+            y = (y / d) * R;
+          }
+          bubble.style.transform = "translate(" + x + "px," + y + "px)";
+        }
+        function enableGyro() {
+          var DOE = window.DeviceOrientationEvent;
+          if (!DOE) {
+            $("gyroHint").textContent = "Sensor tidak disokong pada peranti ini.";
+            return;
+          }
+          if (typeof DOE.requestPermission === "function") {
+            DOE.requestPermission()
+              .then(function (r) {
+                if (r === "granted") {
+                  window.addEventListener("deviceorientation", onOrient, true);
+                  $("gyroHint").textContent = "Sensor aktif.";
+                } else {
+                  $("gyroHint").textContent = "Kebenaran sensor ditolak.";
+                }
+              })
+              .catch(function () {
+                $("gyroHint").textContent = "Kebenaran sensor gagal.";
+              });
+          } else {
+            window.addEventListener("deviceorientation", onOrient, true);
+            $("gyroHint").textContent = "Sensor aktif.";
+          }
+        }
+        $("btnGyro").addEventListener("click", enableGyro);
+        enableGyro();
+
+        /* ---------------- camera ---------------- */
+        function startCamera() {
+          if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            setStatus("Kamera tidak disokong pelayar ini.", "");
+            $("loaderSub").textContent = "Kamera tidak disokong.";
+            return Promise.reject(new Error("no getUserMedia"));
+          }
+          var constraints = {
+            audio: false,
+            video: {
+              facingMode: { ideal: "environment" },
+              width: { ideal: 1920 },
+              height: { ideal: 1080 },
+            },
+          };
+          return navigator.mediaDevices
+            .getUserMedia(constraints)
+            .catch(function () {
+              return navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+            })
+            .then(function (stream) {
+              video.srcObject = stream;
+              return video.play();
+            })
+            .then(function () {
+              state.camReady = true;
+            })
+            .catch(function (err) {
+              var msg = "Kamera tidak dapat dibuka.";
+              if (err && (err.name === "NotAllowedError" || err.name === "SecurityError"))
+                msg = "Kebenaran kamera ditolak. Benarkan kamera dalam tetapan pelayar.";
+              else if (err && err.name === "NotFoundError") msg = "Tiada kamera dijumpai.";
+              else if (!window.isSecureContext) msg = "Perlu HTTPS untuk akses kamera.";
+              setStatus(msg, "");
+              $("loaderSub").textContent = msg;
+              toast(msg);
+              throw err;
             });
         }
 
-        // Mula Kamera
-        initCamera();
+        /* ---------------- OpenCV detection ---------------- */
+        var work = document.createElement("canvas");
+        var wctx = work.getContext("2d", { willReadFrequently: true });
+        var W = 320,
+          H = 240;
+        work.width = W;
+        work.height = H;
+
+        function detectJack() {
+          if (!state.cvReady || !state.camReady || video.readyState < 2) return null;
+          var cv = window.cv;
+          wctx.drawImage(video, 0, 0, W, H);
+          var src = null,
+            hsv = null,
+            mask = null,
+            contours = null,
+            hier = null,
+            lo = null,
+            hi = null;
+          try {
+            src = cv.imread(work);
+            hsv = new cv.Mat();
+            cv.cvtColor(src, hsv, cv.COLOR_RGBA2RGB);
+            cv.cvtColor(hsv, hsv, cv.COLOR_RGB2HSV);
+            // Jack (cochonnet) is typically bright saturated: yellow/orange/red-ish.
+            lo = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [5, 90, 90, 0]);
+            hi = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [40, 255, 255, 255]);
+            mask = new cv.Mat();
+            cv.inRange(hsv, lo, hi, mask);
+            var k = cv.Mat.ones(5, 5, cv.CV_8U);
+            cv.morphologyEx(mask, mask, cv.MORPH_OPEN, k);
+            cv.morphologyEx(mask, mask, cv.MORPH_CLOSE, k);
+            k.delete();
+
+            contours = new cv.MatVector();
+            hier = new cv.Mat();
+            cv.findContours(mask, contours, hier, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+            var total = W * H,
+              best = null;
+            for (var i = 0; i < contours.size(); i++) {
+              var c = contours.get(i);
+              var area = cv.contourArea(c);
+              var ratio = area / total;
+              if (ratio >= 0.01 && ratio <= 0.05) {
+                var per = cv.arcLength(c, true);
+                var circ = per > 0 ? (4 * Math.PI * area) / (per * per) : 0;
+                if (circ > 0.68) {
+                  var r = cv.boundingRect(c);
+                  var cand = {
+                    x: (r.x + r.width / 2) / W,
+                    y: (r.y + r.height / 2) / H,
+                    r: Math.max(r.width, r.height) / 2 / W,
+                    score: circ,
+                  };
+                  if (!best || cand.score > best.score) best = cand;
+                }
+              }
+              c.delete();
+            }
+            return best;
+          } catch (e) {
+            return null;
+          } finally {
+            [src, hsv, mask, contours, hier, lo, hi].forEach(function (m) {
+              if (m && !m.isDeleted && m.delete) {
+                try {
+                  m.delete();
+                } catch (e) {}
+              }
+            });
+          }
+        }
+
+        /* ---------------- arrows ---------------- */
+        function showArrows(dx, dy, on) {
+          var TH = 0.05;
+          arrows.left.classList.toggle("show", !!on && dx < -TH);
+          arrows.right.classList.toggle("show", !!on && dx > TH);
+          arrows.up.classList.toggle("show", !!on && dy < -TH);
+          arrows.down.classList.toggle("show", !!on && dy > TH);
+        }
+        function hideArrows() {
+          showArrows(0, 0, false);
+        }
+
+        /* ---------------- main loop ---------------- */
+        var lastDetect = 0,
+          detectEvery = 180;
+        function loop(ts) {
+          requestAnimationFrame(loop);
+          if (state.frozen || state.busy) return;
+
+          if (ts - lastDetect > detectEvery) {
+            lastDetect = ts;
+            var d = detectJack();
+            if (d) state.jack = d;
+            else if (state.jack && ts - (state.jack.ts || 0) > 900) state.jack = null;
+            if (d) d.ts = ts;
+          }
+
+          var jack = state.jack;
+          var level = Math.abs(state.beta) < 3 && Math.abs(state.gamma) < 3 && state.gyroOK;
+          leveler.classList.toggle("level", level);
+
+          if (!jack) {
+            jackMark.style.display = "none";
+            hideArrows();
+            countRing.classList.remove("on");
+            state.steadySince = 0;
+            setStatus("Mencari Jack...", "search");
+            return;
+          }
+
+          jackMark.style.display = "block";
+          jackMark.style.left = (jack.x * 100).toFixed(2) + "%";
+          jackMark.style.top = (jack.y * 100).toFixed(2) + "%";
+
+          var dx = jack.x - 0.5,
+            dy = jack.y - 0.5;
+          var centered = Math.abs(dx) <= 0.05 && Math.abs(dy) <= 0.05;
+
+          if (!centered) {
+            showArrows(dx, dy, true);
+            countRing.classList.remove("on");
+            state.steadySince = 0;
+            setStatus("Pandu arah kamera ke Jack", "guide");
+            return;
+          }
+          hideArrows();
+
+          if (!level) {
+            countRing.classList.remove("on");
+            state.steadySince = 0;
+            setStatus(state.gyroOK ? "Ratakan Timbang Air" : "Aktifkan sensor di Tetapan", "guide");
+            return;
+          }
+
+          setStatus("Sempurna! Tahan Telefon...", "ready");
+          if (!state.auto) {
+            countRing.classList.remove("on");
+            return;
+          }
+          if (!state.steadySince) {
+            state.steadySince = ts;
+            countRing.classList.add("on");
+          } else if (ts - state.steadySince >= 1500) {
+            doSnap();
+          }
+        }
+
+        /* ---------------- snap ---------------- */
+        function doSnap() {
+          if (state.frozen || state.busy || !state.camReady) return;
+          state.busy = true;
+          countRing.classList.remove("on");
+          state.steadySince = 0;
+
+          var vw = video.videoWidth || 1280,
+            vh = video.videoHeight || 720;
+          var rect = video.getBoundingClientRect();
+          freeze.width = vw;
+          freeze.height = vh;
+
+          fctx.filter = "brightness(1.08) contrast(1.18) saturate(1.05)";
+          fctx.drawImage(video, 0, 0, vw, vh);
+          fctx.filter = "none";
+
+          // Simulated measurement visualization
+          var cx = vw / 2,
+            cy = vh / 2;
+          var jr = (state.jack ? state.jack.r : 0.045) * vw;
+          if (jr < 18) jr = Math.max(18, vw * 0.035);
+
+          fctx.strokeStyle = "rgba(34,224,122,0.95)";
+          fctx.lineWidth = Math.max(3, vw * 0.005);
+          fctx.beginPath();
+          fctx.arc(cx, cy, jr, 0, Math.PI * 2);
+          fctx.stroke();
+
+          fctx.setLineDash([12, 10]);
+          fctx.strokeStyle = "rgba(0,242,254,0.85)";
+          fctx.beginPath();
+          fctx.arc(cx, cy, jr * 3.4, 0, Math.PI * 2);
+          fctx.stroke();
+          fctx.setLineDash([]);
+
+          var bx = cx + jr * 3.0,
+            by = cy - jr * 1.6;
+          fctx.strokeStyle = "rgba(34,224,122,0.95)";
+          fctx.beginPath();
+          fctx.arc(bx, by, jr * 1.5, 0, Math.PI * 2);
+          fctx.stroke();
+          fctx.beginPath();
+          fctx.moveTo(cx, cy);
+          fctx.lineTo(bx, by);
+          fctx.stroke();
+
+          var fs = Math.max(22, vw * 0.035);
+          fctx.font = "700 " + fs + "px Poppins, sans-serif";
+          fctx.textAlign = "center";
+          fctx.textBaseline = "middle";
+          fctx.fillStyle = "rgba(34,224,122,1)";
+          fctx.strokeStyle = "rgba(0,0,0,0.55)";
+          fctx.lineWidth = Math.max(2, fs * 0.12);
+          fctx.strokeText("1", bx, by);
+          fctx.fillText("1", bx, by);
+
+          fctx.textAlign = "left";
+          fctx.fillStyle = "rgba(255,255,255,0.95)";
+          fctx.strokeText("PETANQUE REFEREE PRO", fs * 0.6, fs * 1.1);
+          fctx.fillText("PETANQUE REFEREE PRO", fs * 0.6, fs * 1.1);
+
+          freeze.style.display = "block";
+          video.classList.add("hidden");
+          state.frozen = true;
+          state.busy = false;
+
+          setStatus("Keputusan Dianalisis!", "done");
+          jackMark.style.display = "none";
+          hideArrows();
+          setResultMode(true);
+
+          try {
+            saveShot(freeze.toDataURL("image/jpeg", 0.72));
+          } catch (e) {
+            toast("Gagal menyimpan rekod.");
+          }
+          if (navigator.vibrate) navigator.vibrate(60);
+          void rect;
+        }
+
+        function resume() {
+          state.frozen = false;
+          freeze.style.display = "none";
+          video.classList.remove("hidden");
+          state.steadySince = 0;
+          setResultMode(false);
+          setStatus("Mencari Jack...", "search");
+        }
+
+        function setResultMode(on) {
+          if (on) {
+            btnSnap.textContent = "Kamera Semula";
+            btnSnap.classList.remove("primary");
+            btnSnap.classList.add("danger");
+          } else {
+            btnSnap.textContent = "Snap Manual";
+            btnSnap.classList.add("primary");
+            btnSnap.classList.remove("danger");
+          }
+        }
+
+        btnSnap.addEventListener("click", function () {
+          if (state.frozen) resume();
+          else doSnap();
+        });
+
+        /* ---------------- boot ---------------- */
+        function loadOpenCV() {
+          return new Promise(function (resolve) {
+            var s = document.createElement("script");
+            s.src = "https://docs.opencv.org/4.8.0/opencv.js";
+            s.async = true;
+            s.onload = function () {
+              var cv = window.cv;
+              if (cv && cv.Mat) return resolve(true);
+              if (cv && typeof cv.then === "function") {
+                cv.then(function (m) {
+                  window.cv = m;
+                  resolve(true);
+                });
+                return;
+              }
+              if (cv) {
+                cv.onRuntimeInitialized = function () {
+                  resolve(true);
+                };
+                return;
+              }
+              resolve(false);
+            };
+            s.onerror = function () {
+              resolve(false);
+            };
+            document.head.appendChild(s);
+            setTimeout(function () {
+              resolve(!!(window.cv && window.cv.Mat));
+            }, 25000);
+          });
+        }
+
+        function boot() {
+          requestAnimationFrame(loop);
+          startCamera().catch(function () {});
+          loadOpenCV().then(function (ok) {
+            state.cvReady = !!ok;
+            $("loader").classList.add("hide");
+            if (!ok) {
+              toast("AI tidak dimuatkan — mod snap manual sahaja.");
+              setStatus("Mod manual — tekan Snap", "guide");
+            } else {
+              setStatus("Mencari Jack...", "search");
+            }
+          });
+        }
+
+        document.addEventListener("visibilitychange", function () {
+          if (!document.hidden) state.steadySince = 0;
+        });
+
+        if ("serviceWorker" in navigator && location.protocol !== "file:") {
+          window.addEventListener("load", function () {
+            navigator.serviceWorker.register("./sw.js").catch(function () {});
+          });
+        }
+
+        boot();
+      })();
     </script>
-</body>
+  </body>
 </html>

@@ -1,22 +1,19 @@
 {
   "name": "Petanque Referee Pro",
-  "short_name": "PetanquePro",
-  "description": "Pengukur jarak jack dan boule automatik.",
+  "short_name": "Petanque Ref",
+  "description": "Professional jack detection, leveling and auto-snap measurement tool for Petanque referees.",
   "start_url": "./index.html",
-  "display": "fullscreen",
-  "background_color": "#121212",
-  "theme_color": "#007bff",
+  "scope": "./",
+  "display": "standalone",
   "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#0056b3",
   "icons": [
     {
-      "src": "icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "icon-512.png",
+      "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcng9IjkwIiBmaWxsPSIjMDA1NmIzIi8+PGNpcmNsZSBjeD0iMjU2IiBjeT0iMjU2IiByPSIxNDAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzAwZjJmZSIgc3Ryb2tlLXdpZHRoPSIyMCIvPjxjaXJjbGUgY3g9IjI1NiIgY3k9IjI1NiIgcj0iNDAiIGZpbGw9IiM0ZmFjZmUiLz48L3N2Zz4=",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
     }
   ]
 }
