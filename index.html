@@ -240,19 +240,10 @@
         height: 34px;
         margin: -17px 0 0 -17px;
         border-radius: 50%;
-        /* transparent water-bubble look */
-        background: radial-gradient(
-          circle at 32% 28%,
-          rgba(255, 255, 255, 0.55) 0%,
-          rgba(79, 172, 254, 0.22) 45%,
-          rgba(0, 242, 254, 0.1) 100%
-        );
-        border: 2px solid rgba(255, 255, 255, 0.85);
-        backdrop-filter: blur(2px);
-        -webkit-backdrop-filter: blur(2px);
-        box-shadow:
-          0 4px 10px rgba(0, 0, 0, 0.25),
-          0 0 0 1px rgba(0, 0, 0, 0.12);
+        /* ring sahaja — tengah kosong supaya mudah aim Jack */
+        background: none;
+        border: 2px solid rgba(255, 255, 255, 0.8);
+        box-shadow: 0 0 6px rgba(0, 0, 0, 0.35);
         transition:
           background 0.2s ease,
           border-color 0.2s ease,
@@ -298,14 +289,16 @@
         border-color: var(--green);
         box-shadow: 0 0 26px rgba(34, 224, 122, 0.75);
       }
+      #leveler.found #bubble {
+        border-color: var(--green);
+        box-shadow: 0 0 10px rgba(34, 224, 122, 0.7);
+      }
       #leveler.level #bubble {
-        background: radial-gradient(
-          circle at 32% 28%,
-          rgba(255, 255, 255, 0.6) 0%,
-          rgba(34, 224, 122, 0.3) 45%,
-          rgba(6, 214, 160, 0.14) 100%
-        );
-        border-color: rgba(34, 224, 122, 0.95);
+        background: none;
+        border-color: var(--green);
+        box-shadow:
+          0 0 12px rgba(34, 224, 122, 0.8),
+          0 0 12px rgba(34, 224, 122, 0.5) inset;
       }
       #leveler.level #levelBar {
         background: linear-gradient(135deg, #22e07a 0%, #06d6a0 100%);
@@ -1892,6 +1885,7 @@
             !state.gyroOK ||
             (Math.abs(state.beta) < levelTol() && Math.abs(state.gamma) < levelTol());
           leveler.classList.toggle("level", level);
+          leveler.classList.toggle("found", !!state.jack);
 
           if (!jack) {
             jackMark.style.display = "none";
@@ -1994,9 +1988,9 @@
           var mmPerPx = 30 / (2 * jr); // official jack ~30 mm diameter
 
           var LW = Math.max(3, vw * 0.0042);
-          var fs = Math.max(20, vw * 0.028);
+          var fs = Math.max(14, vw * 0.019); // lebih kecil supaya tak ganggu fokus
           // keep labels readable even when many boules are tagged
-          if (boules.length > 10) fs = Math.max(14, fs * (10 / boules.length) ** 0.35);
+          if (boules.length > 10) fs = Math.max(11, fs * (10 / boules.length) ** 0.35);
 
           // jack marker
           fctx.lineWidth = LW;
@@ -2019,10 +2013,12 @@
           fctx.textBaseline = "middle";
 
           function tag(text, x, y, color) {
-            var pad = fs * 0.42;
+            var pad = fs * 0.34;
             var w = fctx.measureText(text).width + pad * 2;
-            var h = fs * 1.5;
-            fctx.fillStyle = "rgba(0,0,0,0.6)";
+            var h = fs * 1.28;
+            var prevA = fctx.globalAlpha;
+            fctx.globalAlpha = 0.34; // latar telus — bola & jack kekal jelas
+            fctx.fillStyle = "rgba(0,0,0,1)";
             fctx.beginPath();
             var rr = h / 2;
             fctx.moveTo(x - w / 2 + rr, y - h / 2);
@@ -2032,8 +2028,10 @@
             fctx.arcTo(x - w / 2, y - h / 2, x + w / 2, y - h / 2, rr);
             fctx.closePath();
             fctx.fill();
+            fctx.globalAlpha = 0.82;
             fctx.fillStyle = color;
             fctx.fillText(text, x, y);
+            fctx.globalAlpha = prevA;
           }
 
           function badge(text, x, y, color, br) {
