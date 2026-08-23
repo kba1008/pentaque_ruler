@@ -1,13 +1,10 @@
 /* Petanque Referee Pro - Service Worker */
-const CACHE = "petanque-ref-pro-v3";
+const CACHE = "petanque-ref-pro-v4";
 const ASSETS = [
   "./",
   "./index.html",
   "./manifest.json",
-  "./icon-192.png",
-  "./icon-512.png",
-  "./apple-touch-icon.png",
-  "./favicon.png",
+  "./icon.png",
 ];
 
 self.addEventListener("install", (event) => {

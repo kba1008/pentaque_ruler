@@ -16,8 +16,8 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <link rel="manifest" href="./manifest.json" />
-    <link rel="icon" type="image/png" href="./favicon.png" />
-    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+    <link rel="icon" type="image/png" href="./icon.png" />
+    <link rel="apple-touch-icon" href="./icon.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -1125,56 +1125,89 @@
 
         /* ---------------- boule mapping (Hough) ---------------- */
         function detectBoules(canvasEl, jackPx) {
-          // returns array of {x,y,r} in canvasEl pixels (jack excluded)
+          // returns array of {x,y,r,d} in canvasEl pixels, sorted nearest -> farthest
           if (!state.cvReady || !window.cv) return [];
           var cv = window.cv;
-          var SW = 480;
+          var SW = 720; // higher resolution => small/far boules are not missed
           var sc = SW / canvasEl.width;
           var SH = Math.max(1, Math.round(canvasEl.height * sc));
           var tmp = document.createElement("canvas");
           tmp.width = SW;
           tmp.height = SH;
           tmp.getContext("2d").drawImage(canvasEl, 0, 0, SW, SH);
-          var src = null, gray = null, circles = null;
-          var out = [];
+          var src = null, gray = null;
+          var raw = [];
           try {
             src = cv.imread(tmp);
             gray = new cv.Mat();
             cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
             cv.medianBlur(gray, gray, 5);
-            circles = new cv.Mat();
-            var minR = Math.round(SW * 0.03),
-              maxR = Math.round(SW * 0.22);
-            cv.HoughCircles(
-              gray, circles, cv.HOUGH_GRADIENT, 1,
-              Math.round(SW * 0.07), 110, 32, minR, maxR
-            );
-            for (var i = 0; i < circles.cols; i++) {
-              var x = circles.data32F[i * 3] / sc;
-              var y = circles.data32F[i * 3 + 1] / sc;
-              var r = circles.data32F[i * 3 + 2] / sc;
-              if (jackPx) {
-                var dd = Math.sqrt(
-                  (x - jackPx.x) * (x - jackPx.x) + (y - jackPx.y) * (y - jackPx.y)
+
+            // multi-pass Hough: different sensitivities catch near + far boules
+            var passes = [
+              { minDist: SW * 0.045, p1: 120, p2: 34, minR: SW * 0.018, maxR: SW * 0.2 },
+              { minDist: SW * 0.04, p1: 90, p2: 24, minR: SW * 0.012, maxR: SW * 0.14 },
+              { minDist: SW * 0.06, p1: 140, p2: 44, minR: SW * 0.05, maxR: SW * 0.26 }
+            ];
+            passes.forEach(function (o) {
+              var circles = new cv.Mat();
+              try {
+                cv.HoughCircles(
+                  gray, circles, cv.HOUGH_GRADIENT, 1,
+                  Math.max(8, Math.round(o.minDist)),
+                  o.p1, o.p2,
+                  Math.round(o.minR), Math.round(o.maxR)
                 );
-                if (dd < jackPx.r * 1.4) continue; // that's the jack itself
+                for (var i = 0; i < circles.cols; i++) {
+                  raw.push({
+                    x: circles.data32F[i * 3] / sc,
+                    y: circles.data32F[i * 3 + 1] / sc,
+                    r: circles.data32F[i * 3 + 2] / sc
+                  });
+                }
+              } catch (e) {
+              } finally {
+                try { circles.delete(); } catch (e) {}
               }
-              out.push({ x: x, y: y, r: r });
-            }
+            });
           } catch (e) {
-            /* noop */
           } finally {
-            [src, gray, circles].forEach(function (m) {
+            [src, gray].forEach(function (m) {
               if (m && m.delete) { try { m.delete(); } catch (e) {} }
             });
           }
+
+          // drop the jack itself, then merge duplicates from the passes
+          var out = [];
+          raw.forEach(function (c) {
+            if (!isFinite(c.x) || !isFinite(c.y) || !isFinite(c.r) || c.r <= 0) return;
+            if (jackPx) {
+              var dd = Math.hypot(c.x - jackPx.x, c.y - jackPx.y);
+              if (dd < jackPx.r * 1.35) return; // that's the jack
+            }
+            for (var i = 0; i < out.length; i++) {
+              var o = out[i];
+              if (Math.hypot(c.x - o.x, c.y - o.y) < Math.max(o.r, c.r) * 0.85) {
+                // same boule seen twice -> average it
+                o.x = (o.x + c.x) / 2;
+                o.y = (o.y + c.y) / 2;
+                o.r = (o.r + c.r) / 2;
+                o.n = (o.n || 1) + 1;
+                return;
+              }
+            }
+            out.push({ x: c.x, y: c.y, r: c.r, n: 1 });
+          });
+
           if (jackPx) {
             out.forEach(function (b) {
-              b.d = Math.hypot(b.x - jackPx.x, b.y - jackPx.y) - b.r - jackPx.r;
+              // edge-to-edge gap between jack and boule (can be ~0 when touching)
+              b.d = Math.max(0, Math.hypot(b.x - jackPx.x, b.y - jackPx.y) - b.r - jackPx.r);
             });
+            // strict ranking: nearest to the jack first, whoever the boule belongs to
             out.sort(function (a, b) { return a.d - b.d; });
           }
-          return out.slice(0, 8);
+          return out.slice(0, 50); // supports up to 50 boules
         }
 
         /* ---------------- arrows ---------------- */
@@ -1319,6 +1352,8 @@
 
           var LW = Math.max(3, vw * 0.0042);
           var fs = Math.max(20, vw * 0.028);
+          // keep labels readable even when many boules are tagged
+          if (boules.length > 10) fs = Math.max(14, fs * (10 / boules.length) ** 0.35);
 
           // jack marker
           fctx.lineWidth = LW;
