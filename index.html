@@ -240,67 +240,19 @@
         height: 34px;
         margin: -17px 0 0 -17px;
         border-radius: 50%;
-        /* ring sahaja — tengah kosong supaya mudah aim Jack */
-        background: none;
-        border: 2px solid rgba(255, 255, 255, 0.8);
-        box-shadow: 0 0 6px rgba(0, 0, 0, 0.35);
+        background: var(--grad-primary);
+        box-shadow:
+          0 6px 14px rgba(0, 0, 0, 0.3),
+          0 0 0 3px rgba(255, 255, 255, 0.6) inset;
         transition:
           background 0.2s ease,
-          border-color 0.2s ease,
           box-shadow 0.2s ease;
-      }
-      #levelHint {
-        position: absolute;
-        left: 50%;
-        top: 100%;
-        transform: translate(-50%, 10px);
-        white-space: nowrap;
-        font-size: 12px;
-        font-weight: 600;
-        color: #fff;
-        text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
-        background: rgba(10, 20, 40, 0.35);
-        padding: 4px 10px;
-        border-radius: 999px;
-      }
-      #levelBarWrap {
-        position: absolute;
-        left: 50%;
-        bottom: 100%;
-        transform: translate(-50%, -10px);
-        width: 150px;
-        height: 6px;
-        border-radius: 999px;
-        background: rgba(255, 255, 255, 0.25);
-        overflow: hidden;
-      }
-      #levelBar {
-        height: 100%;
-        width: 0%;
-        border-radius: 999px;
-        background: var(--grad-primary);
-        transition: width 0.15s linear;
-      }
-      #leveler.near {
-        border-color: rgba(255, 214, 102, 0.95);
-        box-shadow: 0 0 18px rgba(255, 214, 102, 0.55);
       }
       #leveler.level {
         border-color: var(--green);
         box-shadow: 0 0 26px rgba(34, 224, 122, 0.75);
       }
-      #leveler.found #bubble {
-        border-color: var(--green);
-        box-shadow: 0 0 10px rgba(34, 224, 122, 0.7);
-      }
       #leveler.level #bubble {
-        background: none;
-        border-color: var(--green);
-        box-shadow:
-          0 0 12px rgba(34, 224, 122, 0.8),
-          0 0 12px rgba(34, 224, 122, 0.5) inset;
-      }
-      #leveler.level #levelBar {
         background: linear-gradient(135deg, #22e07a 0%, #06d6a0 100%);
       }
 
@@ -515,23 +467,6 @@
           transform 0.28s ease,
           opacity 0.28s ease;
       }
-      .panel {
-        overflow-y: auto;
-        -webkit-overflow-scrolling: touch;
-        overscroll-behavior: contain;
-      }
-      .panel > .card,
-      .panel > .panel-actions,
-      .panel > h2,
-      .panel > p.sub {
-        flex: 0 0 auto;
-      }
-      #panelHistory {
-        overflow: hidden;
-      }
-      #histList {
-        min-height: 0;
-      }
       .panel.open {
         display: flex;
         transform: translateY(0);
@@ -693,137 +628,6 @@
         margin-top: 6px;
       }
 
-
-      /* ===================== ZOOM / PAN ===================== */
-      #freeze {
-        transform-origin: 0 0;
-        will-change: transform;
-      }
-      #stage.zoomable {
-        touch-action: none;
-      }
-      #zoomBar {
-        position: absolute;
-        z-index: 10;
-        right: 12px;
-        bottom: calc(178px + var(--safe-b));
-        display: none;
-        flex-direction: column;
-        gap: 8px;
-        padding: 8px;
-      }
-      #zoomBar.on {
-        display: flex;
-      }
-      .zbtn {
-        width: 44px;
-        height: 44px;
-        border: 0;
-        border-radius: 12px;
-        font-family: inherit;
-        font-size: 17px;
-        font-weight: 700;
-        color: #063049;
-        background: var(--grad-light);
-        box-shadow: 0 3px 0 #c3ccd6;
-        cursor: pointer;
-      }
-      .zbtn:active {
-        transform: translateY(3px);
-        box-shadow: 0 0 0 #c3ccd6;
-      }
-      #zoomLevel {
-        text-align: center;
-        font-size: 11px;
-        font-weight: 700;
-        color: var(--blue);
-        font-variant-numeric: tabular-nums;
-      }
-
-      /* ===================== HISTORY ITEM ===================== */
-      .hist-item {
-        position: relative;
-      }
-      .hist-item .thumb {
-        display: block;
-        width: 100%;
-        padding: 0;
-        border: 0;
-        background: #000;
-        cursor: pointer;
-      }
-      .hist-tools {
-        display: flex;
-        gap: 6px;
-        padding: 0 8px 8px;
-      }
-      .hist-tools button {
-        flex: 1;
-        border: 0;
-        border-radius: 10px;
-        padding: 8px 0;
-        font-family: inherit;
-        font-size: 13px;
-        font-weight: 600;
-        color: #063049;
-        background: var(--soft-gray);
-        cursor: pointer;
-      }
-      .hist-tools button.del {
-        background: rgba(211, 32, 41, 0.12);
-        color: #b3131b;
-      }
-
-      /* ===================== VIEWER ===================== */
-      #viewer {
-        position: fixed;
-        inset: 0;
-        z-index: 40;
-        background: #05070d;
-        display: none;
-        touch-action: none;
-        overflow: hidden;
-      }
-      #viewer.open {
-        display: block;
-      }
-      #viewerImg {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        object-fit: contain;
-        transform-origin: 0 0;
-        will-change: transform;
-        user-select: none;
-        -webkit-user-drag: none;
-      }
-      #viewerBar {
-        position: absolute;
-        z-index: 2;
-        left: 12px;
-        right: 12px;
-        bottom: calc(14px + var(--safe-b));
-        padding: 10px;
-        display: flex;
-        gap: 8px;
-        align-items: center;
-      }
-      #viewerMeta {
-        position: absolute;
-        z-index: 2;
-        top: calc(12px + var(--safe-t));
-        left: 12px;
-        right: 12px;
-        padding: 10px 14px;
-        font-size: 12px;
-        font-weight: 600;
-        display: flex;
-        justify-content: space-between;
-        gap: 10px;
-      }
-
       #toast {
         position: fixed;
         z-index: 60;
@@ -875,14 +679,12 @@
       <div id="countRing"><div class="fill"></div></div>
 
       <div id="leveler">
-        <div id="levelBarWrap"><div id="levelBar"></div></div>
         <div id="levelTarget"></div>
         <div id="bubble"></div>
-        <div id="levelHint">Rata: —</div>
       </div>
 
       <div id="topBar" class="glass">
-        <div id="brand">Petanque Referee Pro<span>Manual Jack Measure</span></div>
+        <div id="brand">Petanque Referee Pro<span>Auto Jack Measure</span></div>
         <div class="spacer"></div>
         <div id="angles">β 0.0°<br />γ 0.0°</div>
       </div>
@@ -890,13 +692,6 @@
       <div id="statusBar" class="glass">
         <div id="statusDot" class="search"></div>
         <div id="statusText">Memuatkan AI...</div>
-      </div>
-
-      <div id="zoomBar" class="glass">
-        <button class="zbtn" id="zIn" aria-label="Zoom masuk">＋</button>
-        <div id="zoomLevel">1.0×</div>
-        <button class="zbtn" id="zOut" aria-label="Zoom keluar">－</button>
-        <button class="zbtn" id="zReset" aria-label="Set semula zoom">⤢</button>
       </div>
 
       <div id="dock" class="glass">
@@ -925,7 +720,7 @@
       <div class="card row">
         <div>
           <div class="label">Auto-Snap</div>
-          <div class="hint">Tangkap automatik bila telefon rata (Jack di bulatan tengah).</div>
+          <div class="hint">Tangkap automatik bila Jack di tengah &amp; rata.</div>
         </div>
         <label class="switch">
           <input type="checkbox" id="tglAuto" checked />
@@ -939,66 +734,6 @@
           <div class="hint" id="gyroHint">Ketuk untuk benarkan (iOS).</div>
         </div>
         <button class="btn" id="btnGyro" style="flex: 0 0 auto; width: 120px">Benarkan</button>
-      </div>
-
-      <div class="card row">
-        <div>
-          <div class="label">Kalibrasi Rata (Tare)</div>
-          <div class="hint" id="calHint">
-            Letak telefon pada kedudukan pegang biasa, kemudian tekan Set. Kedudukan itu jadi
-            paras rata baharu.
-          </div>
-        </div>
-        <button class="btn" id="btnCal" style="flex: 0 0 auto; width: 120px">Set</button>
-      </div>
-
-      <div class="card row">
-        <div>
-          <div class="label">Set Semula Kalibrasi</div>
-          <div class="hint">Kembali kepada paras rata asal (0°).</div>
-        </div>
-        <button class="btn" id="btnCalReset" style="flex: 0 0 auto; width: 120px">Reset</button>
-      </div>
-
-      <div class="card row">
-        <div>
-          <div class="label">Mod Mudah Balance</div>
-          <div class="hint">Toleransi lebih longgar + penstabil bacaan sensor.</div>
-        </div>
-        <label class="switch">
-          <input type="checkbox" id="tglEasy" checked />
-          <span class="track"></span><span class="knob"></span>
-        </label>
-      </div>
-
-      <div class="card">
-        <div class="label">Kongsi Aplikasi</div>
-        <div class="hint" style="margin-bottom: 10px">
-          Imbas QR atau kongsi pautan supaya rakan pengadil boleh pasang app ini.
-        </div>
-        <div style="display: flex; justify-content: center; margin: 6px 0 12px">
-          <div
-            id="qrBox"
-            style="background: #fff; padding: 10px; border-radius: 12px; line-height: 0"
-          ></div>
-        </div>
-        <div
-          id="appLinkText"
-          class="hint"
-          style="word-break: break-all; text-align: center; margin-bottom: 10px"
-        ></div>
-        <div style="display: flex; gap: 8px">
-          <button class="btn" id="btnShareApp">Kongsi Pautan</button>
-          <button class="btn" id="btnCopyLink">Salin</button>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="label">Cadangan &amp; Maklum Balas</div>
-        <div class="hint" style="margin-bottom: 10px">
-          Ada cadangan penambahbaikan? WhatsApp terus ke 011-1066 1077.
-        </div>
-        <button class="btn primary" id="btnWhatsApp">WhatsApp Cadangan</button>
       </div>
 
       <div class="panel-actions">
@@ -1017,19 +752,6 @@
       </div>
     </section>
 
-    <!-- ============ IMAGE VIEWER ============ -->
-    <div id="viewer">
-      <img id="viewerImg" alt="Rekod ukuran penuh" />
-      <div id="viewerMeta" class="glass"><span id="viewerDate"></span><span id="viewerZoom">1.0×</span></div>
-      <div id="viewerBar" class="glass">
-        <button class="btn icon" id="vOut" aria-label="Zoom keluar">－</button>
-        <button class="btn icon" id="vIn" aria-label="Zoom masuk">＋</button>
-        <button class="btn" id="vShare">Kongsi</button>
-        <button class="btn" id="vSave">Simpan</button>
-        <button class="btn danger icon" id="vClose" aria-label="Tutup">✕</button>
-      </div>
-    </div>
-
     <!-- ============ LOADER ============ -->
     <div id="loader">
       <div>
@@ -1041,7 +763,6 @@
 
     <div id="toast"></div>
 
-    <script src="./vendor/qrcode.js"></script>
     <script>
       /* =========================================================
          Petanque Referee Pro — vanilla JS
@@ -1071,21 +792,7 @@
         };
         var btnSnap = $("btnSnap");
 
-        var LS = {
-          grid: "prp.grid",
-          auto: "prp.auto",
-          easy: "prp.easy",
-          calB: "prp.calB",
-          calG: "prp.calG",
-        };
-        function getNum(key, dflt) {
-          try {
-            var v = parseFloat(localStorage.getItem(key));
-            return isFinite(v) ? v : dflt;
-          } catch (e) {
-            return dflt;
-          }
-        }
+        var LS = { grid: "prp.grid", auto: "prp.auto", hist: "prp.history" };
         var state = {
           cvReady: false,
           camReady: false,
@@ -1097,13 +804,6 @@
           steadySince: 0,
           auto: true,
           busy: false,
-          stream: null,
-          camRestarting: false,
-          easy: true,
-          rawBeta: 0,
-          rawGamma: 0,
-          calB: 0,
-          calG: 0,
         };
 
         /* ---------------- helpers ---------------- */
@@ -1174,153 +874,36 @@
           });
         });
 
-        /* ---------------- kongsi app: pautan, QR, WhatsApp ---------------- */
-        var APP_LINK = location.origin + location.pathname.replace(/[^/]*$/, "");
-        var WA_NUMBER = "601110661077";
-        (function initShare() {
-          var t = $("appLinkText");
-          if (t) t.textContent = APP_LINK;
+        /* ---------------- history ---------------- */
+        function readHistory() {
           try {
-            if (typeof qrcode === "function") {
-              var qr = qrcode(0, "M");
-              qr.addData(APP_LINK);
-              qr.make();
-              $("qrBox").innerHTML = qr.createSvgTag({ cellSize: 5, margin: 0 });
-            }
+            return JSON.parse(localStorage.getItem(LS.hist) || "[]");
           } catch (e) {
-            $("qrBox").innerHTML = '<div style="color:#111;font:12px sans-serif">QR gagal dijana</div>';
+            return [];
           }
-          $("btnShareApp").addEventListener("click", function () {
-            var data = {
-              title: "Petanque Referee Pro",
-              text: "Aplikasi pengadil petanque - ukur jarak boule dengan kamera.",
-              url: APP_LINK,
-            };
-            if (navigator.share) navigator.share(data).catch(function () {});
-            else copyLink();
-          });
-          function copyLink() {
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-              navigator.clipboard.writeText(APP_LINK).then(function () {
-                toast("Pautan disalin");
-              });
-            } else {
-              var ta = document.createElement("textarea");
-              ta.value = APP_LINK;
-              document.body.appendChild(ta);
-              ta.select();
-              try {
-                document.execCommand("copy");
-                toast("Pautan disalin");
-              } catch (e) {}
-              document.body.removeChild(ta);
+        }
+        function writeHistory(list) {
+          try {
+            localStorage.setItem(LS.hist, JSON.stringify(list));
+            return true;
+          } catch (e) {
+            return false;
+          }
+        }
+        function saveShot(dataUrl) {
+          var list = readHistory();
+          list.unshift({ t: Date.now(), img: dataUrl });
+          while (list.length > 0 && !writeHistory(list)) {
+            list.pop(); // quota: drop oldest until it fits
+            if (list.length === 0) {
+              toast("Storan penuh — rekod tidak disimpan.");
+              return;
             }
           }
-          $("btnCopyLink").addEventListener("click", copyLink);
-          $("btnWhatsApp").addEventListener("click", function () {
-            var msg =
-              "Salam, saya ada cadangan untuk aplikasi Petanque Referee Pro:\n\n";
-            window.open(
-              "https://wa.me/" + WA_NUMBER + "?text=" + encodeURIComponent(msg),
-              "_blank",
-            );
-          });
-        })();
-
-        /* ---------------- storage: IndexedDB (peranti sahaja) ---------------- */
-        var DB_NAME = "prp-db",
-          STORE = "shots",
-          dbP = null;
-        function openDB() {
-          if (dbP) return dbP;
-          dbP = new Promise(function (resolve, reject) {
-            if (!window.indexedDB) return reject(new Error("no idb"));
-            var req = indexedDB.open(DB_NAME, 1);
-            req.onupgradeneeded = function () {
-              var db = req.result;
-              if (!db.objectStoreNames.contains(STORE)) {
-                db.createObjectStore(STORE, { keyPath: "id", autoIncrement: true });
-              }
-            };
-            req.onsuccess = function () {
-              resolve(req.result);
-            };
-            req.onerror = function () {
-              reject(req.error);
-            };
-          });
-          return dbP;
-        }
-        function idbRun(mode, fn) {
-          return openDB().then(function (db) {
-            return new Promise(function (resolve, reject) {
-              var tx = db.transaction(STORE, mode);
-              var st = tx.objectStore(STORE);
-              var out = fn(st);
-              tx.oncomplete = function () {
-                resolve(out && out.result !== undefined ? out.result : out);
-              };
-              tx.onerror = function () {
-                reject(tx.error);
-              };
-            });
-          });
-        }
-        function addShot(blob) {
-          return idbRun("readwrite", function (st) {
-            return st.add({ t: Date.now(), blob: blob });
-          });
-        }
-        function allShots() {
-          return idbRun("readonly", function (st) {
-            return st.getAll();
-          }).then(function (list) {
-            list = list || [];
-            list.sort(function (a, b) {
-              return b.t - a.t;
-            });
-            return list;
-          });
-        }
-        function deleteShot(id) {
-          return idbRun("readwrite", function (st) {
-            return st.delete(id);
-          });
-        }
-        function clearShots() {
-          return idbRun("readwrite", function (st) {
-            return st.clear();
-          });
-        }
-        function trimShots(max) {
-          return allShots().then(function (list) {
-            var extra = list.slice(max);
-            return Promise.all(
-              extra.map(function (it) {
-                return deleteShot(it.id);
-              })
-            );
-          });
-        }
-        function saveShot(blob) {
-          return addShot(blob)
-            .then(function () {
-              return trimShots(200);
-            })
-            .catch(function () {
-              toast("Gagal menyimpan rekod dalam telefon.");
-            });
-        }
-
-        /* ---------------- history UI ---------------- */
-        var histUrls = [];
-        function releaseUrls() {
-          histUrls.forEach(function (u) {
-            try {
-              URL.revokeObjectURL(u);
-            } catch (e) {}
-          });
-          histUrls = [];
+          if (list.length > 40) {
+            list.length = 40;
+            writeHistory(list);
+          }
         }
         function fmt(ts) {
           var d = new Date(ts);
@@ -1339,126 +922,58 @@
             p(d.getMinutes())
           );
         }
-        function fileName(ts) {
-          return "petanque-" + new Date(ts).toISOString().replace(/[:.]/g, "-") + ".jpg";
-        }
-        function shareShot(item) {
-          var file = null;
-          try {
-            file = new File([item.blob], fileName(item.t), { type: "image/jpeg" });
-          } catch (e) {}
-          if (file && navigator.canShare && navigator.canShare({ files: [file] }) && navigator.share) {
-            navigator
-              .share({
-                files: [file],
-                title: "Petanque Referee Pro",
-                text: "Ukuran rasmi — " + fmt(item.t),
-              })
-              .catch(function () {});
+        function renderHistory() {
+          var list = readHistory(),
+            box = $("histList");
+          box.innerHTML = "";
+          if (!list.length) {
+            var e = document.createElement("div");
+            e.className = "empty";
+            e.textContent = "Tiada rekod lagi. Snap ukuran pertama anda!";
+            e.style.gridColumn = "1 / -1";
+            box.appendChild(e);
             return;
           }
-          downloadShot(item);
-          toast("Kongsi terus tidak disokong — gambar dimuat turun.");
-        }
-        function downloadShot(item) {
-          var u = URL.createObjectURL(item.blob);
-          var a = document.createElement("a");
-          a.href = u;
-          a.download = fileName(item.t);
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          setTimeout(function () {
-            URL.revokeObjectURL(u);
-          }, 4000);
-        }
-        function renderHistory() {
-          var box = $("histList");
-          box.innerHTML = '<div class="empty" style="grid-column:1/-1">Memuatkan rekod...</div>';
-          return allShots()
-            .then(function (list) {
-              releaseUrls();
-              box.innerHTML = "";
-              if (!list.length) {
-                var e = document.createElement("div");
-                e.className = "empty";
-                e.textContent = "Tiada rekod lagi. Snap ukuran pertama anda!";
-                e.style.gridColumn = "1 / -1";
-                box.appendChild(e);
-                return;
-              }
-              list.forEach(function (it) {
-                var url = URL.createObjectURL(it.blob);
-                histUrls.push(url);
-                var card = document.createElement("div");
-                card.className = "hist-item";
-
-                var btn = document.createElement("button");
-                btn.className = "thumb";
-                btn.setAttribute("aria-label", "Besarkan rekod " + fmt(it.t));
-                var img = document.createElement("img");
-                img.src = url;
-                img.alt = "Rekod ukuran " + fmt(it.t);
-                img.loading = "lazy";
-                btn.appendChild(img);
-                btn.addEventListener("click", function () {
-                  openViewer(it, url);
-                });
-
-                var m = document.createElement("div");
-                m.className = "meta";
-                m.textContent = fmt(it.t);
-
-                var tools = document.createElement("div");
-                tools.className = "hist-tools";
-                var bShare = document.createElement("button");
-                bShare.textContent = "Kongsi";
-                bShare.addEventListener("click", function () {
-                  shareShot(it);
-                });
-                var bDel = document.createElement("button");
-                bDel.className = "del";
-                bDel.textContent = "Padam";
-                bDel.addEventListener("click", function () {
-                  deleteShot(it.id).then(renderHistory);
-                });
-                tools.appendChild(bShare);
-                tools.appendChild(bDel);
-
-                card.appendChild(btn);
-                card.appendChild(m);
-                card.appendChild(tools);
-                box.appendChild(card);
-              });
-            })
-            .catch(function () {
-              box.innerHTML = '<div class="empty" style="grid-column:1/-1">Storan tidak tersedia.</div>';
-            });
+          list.forEach(function (it) {
+            var card = document.createElement("div");
+            card.className = "hist-item";
+            var img = document.createElement("img");
+            img.src = it.img;
+            img.alt = "Rekod ukuran " + fmt(it.t);
+            img.loading = "lazy";
+            var m = document.createElement("div");
+            m.className = "meta";
+            m.textContent = fmt(it.t);
+            card.appendChild(img);
+            card.appendChild(m);
+            box.appendChild(card);
+          });
         }
         $("btnClear").addEventListener("click", function () {
           if (!confirm("Padam semua rekod?")) return;
-          clearShots().then(function () {
-            renderHistory();
-            toast("Semua rekod dipadam.");
-          });
+          try {
+            localStorage.removeItem(LS.hist);
+          } catch (e) {}
+          renderHistory();
+          toast("Semua rekod dipadam.");
         });
 
         /* ---------------- gyroscope ---------------- */
-        var levelHintEl = $("levelHint"),
-          levelBarEl = $("levelBar");
-        var smB = null,
-          smG = null;
-
-        function levelTol() {
-          return state.easy ? 9 : 5;
-        }
-
-        function updateLevelUI() {
+        function onOrient(e) {
+          if (e.beta === null && e.gamma === null) return;
+          state.gyroOK = true;
+          state.beta = e.beta || 0;
+          state.gamma = e.gamma || 0;
+          // Flat-on-ground reference: beta ~ 0 (phone screen up) when pointing down we use raw beta.
           var b = state.beta,
             g = state.gamma;
-          var tol = levelTol();
+          if (b > 90) b = 180 - b;
+          if (b < -90) b = -180 - b;
+          state.beta = b;
+          angles.innerHTML =
+            "β " + b.toFixed(1) + "°<br>γ " + g.toFixed(1) + "°";
           var R = 75 - 17; // container radius - bubble radius
-          var max = state.easy ? 20 : 12; // degrees mapped to edge (easy = less twitchy)
+          var max = 25; // degrees mapped to edge
           var x = Math.max(-1, Math.min(1, g / max)) * R;
           var y = Math.max(-1, Math.min(1, b / max)) * R;
           var d = Math.sqrt(x * x + y * y);
@@ -1467,84 +982,7 @@
             y = (y / d) * R;
           }
           bubble.style.transform = "translate(" + x + "px," + y + "px)";
-
-          var err = Math.max(Math.abs(b), Math.abs(g));
-          var pct = Math.max(0, Math.min(100, (1 - err / (tol * 3)) * 100));
-          if (levelBarEl) levelBarEl.style.width = pct.toFixed(0) + "%";
-          leveler.classList.toggle("near", err >= tol && err < tol * 2);
-
-          var txt;
-          if (err < tol) {
-            txt = "Rata ✓ tahan telefon";
-          } else {
-            var parts = [];
-            if (Math.abs(g) >= tol) parts.push(g > 0 ? "turunkan sisi kanan" : "turunkan sisi kiri");
-            if (Math.abs(b) >= tol) parts.push(b > 0 ? "tundukkan sedikit" : "dongakkan sedikit");
-            txt = parts.join(" • ") + "  (" + err.toFixed(1) + "°)";
-          }
-          if (levelHintEl) levelHintEl.textContent = txt;
         }
-
-        function onOrient(e) {
-          if (e.beta === null && e.gamma === null) return;
-          state.gyroOK = true;
-          var b = e.beta || 0,
-            g = e.gamma || 0;
-          if (b > 90) b = 180 - b;
-          if (b < -90) b = -180 - b;
-          state.rawBeta = b;
-          state.rawGamma = g;
-
-          // apply calibration (tare)
-          b -= state.calB;
-          g -= state.calG;
-
-          // low-pass smoothing so the bubble stops jumping
-          var k = state.easy ? 0.18 : 0.4;
-          smB = smB === null ? b : smB + (b - smB) * k;
-          smG = smG === null ? g : smG + (g - smG) * k;
-
-          // dead-zone: tiny hand tremor is ignored
-          var dz = state.easy ? 0.6 : 0.2;
-          state.beta = Math.abs(smB) < dz ? 0 : smB;
-          state.gamma = Math.abs(smG) < dz ? 0 : smG;
-
-          angles.innerHTML =
-            "\u03b2 " + state.beta.toFixed(1) + "\u00b0<br>\u03b3 " + state.gamma.toFixed(1) + "\u00b0";
-          updateLevelUI();
-        }
-
-        function calibrateLevel() {
-          if (!state.gyroOK) {
-            toast("Sensor belum aktif. Tekan Benarkan dahulu.");
-            return;
-          }
-          state.calB = state.rawBeta;
-          state.calG = state.rawGamma;
-          smB = smG = null;
-          try {
-            localStorage.setItem(LS.calB, String(state.calB));
-            localStorage.setItem(LS.calG, String(state.calG));
-          } catch (err) {}
-          $("calHint").textContent =
-            "Kalibrasi disimpan (\u03b2 " +
-            state.calB.toFixed(1) +
-            "\u00b0, \u03b3 " +
-            state.calG.toFixed(1) +
-            "\u00b0).";
-          toast("Kalibrasi rata disimpan.");
-        }
-        function resetCalibration() {
-          state.calB = state.calG = 0;
-          smB = smG = null;
-          try {
-            localStorage.removeItem(LS.calB);
-            localStorage.removeItem(LS.calG);
-          } catch (err) {}
-          $("calHint").textContent = "Kalibrasi asal (0\u00b0).";
-          toast("Kalibrasi di-reset.");
-        }
-
         function enableGyro() {
           var DOE = window.DeviceOrientationEvent;
           if (!DOE) {
@@ -1570,19 +1008,6 @@
           }
         }
         $("btnGyro").addEventListener("click", enableGyro);
-        $("btnCal").addEventListener("click", calibrateLevel);
-        $("btnCalReset").addEventListener("click", resetCalibration);
-        state.calB = getNum(LS.calB, 0);
-        state.calG = getNum(LS.calG, 0);
-        state.easy = getBool(LS.easy, true);
-        $("tglEasy").checked = state.easy;
-        $("tglEasy").addEventListener("change", function () {
-          state.easy = this.checked;
-          try {
-            localStorage.setItem(LS.easy, state.easy ? "1" : "0");
-          } catch (e) {}
-          smB = smG = null;
-        });
         enableGyro();
 
         /* ---------------- camera ---------------- */
@@ -1596,9 +1021,8 @@
             audio: false,
             video: {
               facingMode: { ideal: "environment" },
-              width: { ideal: 1280 },
-              height: { ideal: 720 },
-              frameRate: { ideal: 30, max: 30 },
+              width: { ideal: 1920 },
+              height: { ideal: 1080 },
             },
           };
           return navigator.mediaDevices
@@ -1607,18 +1031,11 @@
               return navigator.mediaDevices.getUserMedia({ video: true, audio: false });
             })
             .then(function (stream) {
-              stopStream();
-              state.stream = stream;
               video.srcObject = stream;
-              video.setAttribute("playsinline", "");
-              video.muted = true;
               return video.play();
             })
             .then(function () {
               state.camReady = true;
-              state.camRestarting = false;
-              lastFrameTime = -1;
-              lastFrameAt = Date.now();
             })
             .catch(function (err) {
               var msg = "Kamera tidak dapat dibuka.";
@@ -1632,87 +1049,6 @@
               throw err;
             });
         }
-
-        /* ---------------- camera watchdog (auto-recover bila kamera jam) ---------------- */
-        function stopStream() {
-          try {
-            var st = state.stream || (video.srcObject || null);
-            if (st && st.getTracks) {
-              st.getTracks().forEach(function (t) {
-                try {
-                  t.stop();
-                } catch (e) {}
-              });
-            }
-          } catch (e) {}
-          state.stream = null;
-          try {
-            video.srcObject = null;
-          } catch (e) {}
-        }
-
-        var lastFrameTime = -1,
-          lastFrameAt = Date.now(),
-          stallHits = 0;
-
-        var lastRestartAt = 0;
-        function restartCamera(reason) {
-          if (state.camRestarting || state.busy || state.frozen) return;
-          // Elak restart bertalu-talu (punca app rasa "kejap ok kejap tak").
-          if (Date.now() - lastRestartAt < 8000) return;
-          lastRestartAt = Date.now();
-          state.camRestarting = true;
-          state.camReady = false;
-          setStatus("Memulakan semula kamera...", "guide");
-          stopStream();
-          setTimeout(function () {
-            startCamera().catch(function () {
-              state.camRestarting = false;
-            });
-          }, 250);
-        }
-
-        function watchCamera() {
-          if (state.frozen || state.busy || state.camRestarting || document.hidden) return;
-          var now = Date.now();
-          if (!state.camReady) return;
-          var t = video.currentTime;
-          var live =
-            state.stream &&
-            state.stream.getVideoTracks &&
-            state.stream.getVideoTracks().some(function (tr) {
-              return tr.readyState === "live" && !tr.muted;
-            });
-          if (t !== lastFrameTime && !video.paused) {
-            lastFrameTime = t;
-            lastFrameAt = now;
-            return;
-          }
-          if (video.paused) {
-            video.play().catch(function () {});
-          }
-          if (!live || now - lastFrameAt > 6000) {
-            stallHits++;
-          } else {
-            stallHits = 0;
-          }
-          if (stallHits >= 2) {
-            stallHits = 0;
-            lastFrameAt = now;
-            restartCamera("stall");
-          }
-        }
-        setInterval(watchCamera, 1000);
-        video.addEventListener("ended", function () {
-          restartCamera("ended");
-        });
-        document.addEventListener("visibilitychange", function () {
-          if (!document.hidden) {
-            lastFrameAt = Date.now();
-            stallHits = 0;
-            if (video.paused) video.play().catch(function () {});
-          }
-        });
 
         /* ---------------- OpenCV detection ---------------- */
         var work = document.createElement("canvas");
@@ -1792,7 +1128,7 @@
           // returns array of {x,y,r,d} in canvasEl pixels, sorted nearest -> farthest
           if (!state.cvReady || !window.cv) return [];
           var cv = window.cv;
-          var SW = 640; // imbangan antara ketepatan dan kelajuan pada telefon
+          var SW = 720; // higher resolution => small/far boules are not missed
           var sc = SW / canvasEl.width;
           var SH = Math.max(1, Math.round(canvasEl.height * sc));
           var tmp = document.createElement("canvas");
@@ -1813,9 +1149,7 @@
               { minDist: SW * 0.04, p1: 90, p2: 24, minR: SW * 0.012, maxR: SW * 0.14 },
               { minDist: SW * 0.06, p1: 140, p2: 44, minR: SW * 0.05, maxR: SW * 0.26 }
             ];
-            passes.forEach(function (o, pi) {
-              // pas ketiga hanya bila dua pas pertama tak jumpa cukup bola
-              if (pi === 2 && raw.length >= 2) return;
+            passes.forEach(function (o) {
               var circles = new cv.Mat();
               try {
                 cv.HoughCircles(
@@ -1890,33 +1224,43 @@
 
         /* ---------------- main loop ---------------- */
         var CENTER_TOL = 0.12; // easier to center (12% of frame)
-        var LEVEL_TOL = 6; // fallback; live value comes from levelTol()
+        var LEVEL_TOL = 6; // degrees — stabilizer corrects the rest
         var HOLD_MS = 900;
         var lastDetect = 0,
           detectEvery = 150;
         function loop(ts) {
           requestAnimationFrame(loop);
-          if (state.frozen || state.busy || document.hidden) return;
+          if (state.frozen || state.busy) return;
 
-          // AUTO-KESAN JACK DIMATIKAN: Jack dianggap berada di tengah bidikan.
-          // Skala diambil dari bulatan bidik (letak Jack tepat memenuhi bulatan).
-          var _stg = document.getElementById("stage");
-          var _sw = (_stg && _stg.clientWidth) || window.innerWidth || 360;
-          state.jack = { x: 0.5, y: 0.5, r: 35 / _sw, ts: ts };
+          if (ts - lastDetect > detectEvery) {
+            lastDetect = ts;
+            var d = detectJack();
+            if (d) {
+              d.ts = ts;
+              // smooth to reduce jitter
+              if (state.jack) {
+                d.x = state.jack.x * 0.45 + d.x * 0.55;
+                d.y = state.jack.y * 0.45 + d.y * 0.55;
+                d.r = state.jack.r * 0.5 + d.r * 0.5;
+              }
+              state.jack = d;
+            } else if (state.jack && ts - (state.jack.ts || 0) > 1200) {
+              state.jack = null;
+            }
+          }
 
           var jack = state.jack;
           var level =
             !state.gyroOK ||
-            (Math.abs(state.beta) < levelTol() && Math.abs(state.gamma) < levelTol());
+            (Math.abs(state.beta) < LEVEL_TOL && Math.abs(state.gamma) < LEVEL_TOL);
           leveler.classList.toggle("level", level);
-          leveler.classList.toggle("found", !!state.jack);
 
           if (!jack) {
             jackMark.style.display = "none";
             hideArrows();
             countRing.classList.remove("on");
             state.steadySince = 0;
-            setStatus("Mod manual — letak Jack dalam bulatan tengah", "search");
+            setStatus(state.cvReady ? "Mencari Jack..." : "Mod manual — tekan Snap", "search");
             return;
           }
 
@@ -1940,12 +1284,7 @@
           if (!level) {
             countRing.classList.remove("on");
             state.steadySince = 0;
-            setStatus(
-              levelHintEl && levelHintEl.textContent
-                ? "Ratakan: " + levelHintEl.textContent
-                : "Ratakan Timbang Air",
-              "guide",
-            );
+            setStatus("Ratakan Timbang Air", "guide");
             return;
           }
 
@@ -2001,35 +1340,6 @@
           fctx.restore();
           fctx.filter = "none";
 
-          // Papar frame beku serta-merta supaya butang terasa responsif,
-          // analisis berat dijalankan selepas skrin dikemas kini.
-          freeze.style.display = "block";
-          video.classList.add("hidden");
-          state.frozen = true;
-          jackMark.style.display = "none";
-          hideArrows();
-          setStatus("Menganalisis...", "guide");
-          var snapGuard = setTimeout(function () {
-            if (state.busy) {
-              state.busy = false;
-              setStatus("Analisis terlalu lama. Cuba lagi.", "");
-            }
-          }, 12000);
-          requestAnimationFrame(function () {
-            setTimeout(function () {
-              try {
-                finishSnap();
-              } catch (e) {
-                state.busy = false;
-                setStatus("Analisis gagal. Cuba lagi.", "");
-              } finally {
-                clearTimeout(snapGuard);
-              }
-            }, 0);
-          });
-
-          function finishSnap() {
-
           // Jack now sits at the exact centre of the stabilised frame
           var cx = vw / 2,
             cy = vh / 2;
@@ -2041,9 +1351,9 @@
           var mmPerPx = 30 / (2 * jr); // official jack ~30 mm diameter
 
           var LW = Math.max(3, vw * 0.0042);
-          var fs = Math.max(14, vw * 0.019); // lebih kecil supaya tak ganggu fokus
+          var fs = Math.max(20, vw * 0.028);
           // keep labels readable even when many boules are tagged
-          if (boules.length > 10) fs = Math.max(11, fs * (10 / boules.length) ** 0.35);
+          if (boules.length > 10) fs = Math.max(14, fs * (10 / boules.length) ** 0.35);
 
           // jack marker
           fctx.lineWidth = LW;
@@ -2066,12 +1376,10 @@
           fctx.textBaseline = "middle";
 
           function tag(text, x, y, color) {
-            var pad = fs * 0.34;
+            var pad = fs * 0.42;
             var w = fctx.measureText(text).width + pad * 2;
-            var h = fs * 1.28;
-            var prevA = fctx.globalAlpha;
-            fctx.globalAlpha = 0.34; // latar telus — bola & jack kekal jelas
-            fctx.fillStyle = "rgba(0,0,0,1)";
+            var h = fs * 1.5;
+            fctx.fillStyle = "rgba(0,0,0,0.6)";
             fctx.beginPath();
             var rr = h / 2;
             fctx.moveTo(x - w / 2 + rr, y - h / 2);
@@ -2081,28 +1389,8 @@
             fctx.arcTo(x - w / 2, y - h / 2, x + w / 2, y - h / 2, rr);
             fctx.closePath();
             fctx.fill();
-            fctx.globalAlpha = 0.82;
             fctx.fillStyle = color;
             fctx.fillText(text, x, y);
-            fctx.globalAlpha = prevA;
-          }
-
-          function badge(text, x, y, color, br) {
-            // nombor boule di TENGAH bola: kecil + telus, tiada latar hitam
-            var size = Math.max(fs * 0.6, Math.min(br * 0.55, fs * 0.95));
-            var prev = fctx.font;
-            var prevA = fctx.globalAlpha;
-            fctx.font = "700 " + Math.round(size) + "px Poppins, sans-serif";
-            // outline nipis gelap supaya kekal terbaca atas bola cerah
-            fctx.globalAlpha = 0.35;
-            fctx.lineWidth = Math.max(1.5, size * 0.12);
-            fctx.strokeStyle = "rgba(0,0,0,1)";
-            fctx.strokeText(text, x, y);
-            fctx.globalAlpha = 0.72;
-            fctx.fillStyle = color;
-            fctx.fillText(text, x, y);
-            fctx.globalAlpha = prevA;
-            fctx.font = prev;
           }
 
           tag("JACK", cx, cy - jr - fs * 1.2, "rgba(255,193,7,1)");
@@ -2130,8 +1418,8 @@
               y: (cy + b.y) / 2,
             };
             var cm = Math.max(0, b.d * mmPerPx) / 10;
-            tag(cm.toFixed(1) + " cm", mid.x, mid.y, col);
-            badge(String(i + 1), b.x, b.y, col, b.r);
+            tag(i + 1 + " · " + cm.toFixed(1) + " cm", mid.x, mid.y, col);
+            tag("#" + (i + 1), b.x, b.y - b.r - fs * 1.1, col);
           });
 
           // header + verdict
@@ -2161,38 +1449,23 @@
           jackMark.style.display = "none";
           hideArrows();
           setResultMode(true);
-          freezeZoom.enable(true);
-          freezeZoom.reset();
-          $("zoomBar").classList.add("on");
-          toast("Cubit untuk zoom, skrol dengan jari.");
 
           try {
-            if (freeze.toBlob) {
-              freeze.toBlob(
-                function (blob) {
-                  if (blob) saveShot(blob);
-                },
-                "image/jpeg",
-                0.85
-              );
-            }
+            saveShot(freeze.toDataURL("image/jpeg", 0.72));
           } catch (e) {
             toast("Gagal menyimpan rekod.");
           }
           if (navigator.vibrate) navigator.vibrate(60);
-          }
         }
 
 
         function resume() {
-          freezeZoom.enable(false);
-          $("zoomBar").classList.remove("on");
           state.frozen = false;
           freeze.style.display = "none";
           video.classList.remove("hidden");
           state.steadySince = 0;
           setResultMode(false);
-          setStatus("Mod manual — letak Jack dalam bulatan tengah", "search");
+          setStatus("Mencari Jack...", "search");
         }
 
         function setResultMode(on) {
@@ -2212,200 +1485,11 @@
           else doSnap();
         });
 
-        /* ---------------- zoom & pan (cubit / skrol jari) ---------------- */
-        function makeZoomPan(el, container, opts) {
-          opts = opts || {};
-          var MIN = opts.min || 1,
-            MAX = opts.max || 8;
-          var z = 1,
-            ox = 0,
-            oy = 0,
-            enabled = false;
-          var pts = {},
-            lastDist = 0,
-            lastMid = null,
-            lastTap = 0;
-
-          function apply() {
-            el.style.transform = "translate(" + ox + "px," + oy + "px) scale(" + z + ")";
-            if (opts.onChange) opts.onChange(z);
-          }
-          function clampAll() {
-            var r = container.getBoundingClientRect();
-            var w = r.width * z,
-              h = r.height * z;
-            if (w <= r.width) ox = (r.width - w) / 2;
-            else ox = Math.min(0, Math.max(r.width - w, ox));
-            if (h <= r.height) oy = (r.height - h) / 2;
-            else oy = Math.min(0, Math.max(r.height - h, oy));
-          }
-          function zoomAt(px, py, k) {
-            var nz = Math.min(MAX, Math.max(MIN, z * k));
-            k = nz / z;
-            if (k === 1) return;
-            ox = px - (px - ox) * k;
-            oy = py - (py - oy) * k;
-            z = nz;
-            clampAll();
-            apply();
-          }
-          function local(e) {
-            var r = container.getBoundingClientRect();
-            return { x: e.clientX - r.left, y: e.clientY - r.top };
-          }
-          function count() {
-            return Object.keys(pts).length;
-          }
-
-          container.addEventListener("pointerdown", function (e) {
-            if (!enabled) return;
-            if (e.target && e.target.closest && e.target.closest("button, .glass")) return;
-            pts[e.pointerId] = local(e);
-            if (count() === 1) {
-              var now = Date.now();
-              if (now - lastTap < 300) {
-                var p = pts[e.pointerId];
-                zoomAt(p.x, p.y, z > 1.6 ? MIN / z : 2.5);
-              }
-              lastTap = now;
-            }
-            lastDist = 0;
-            lastMid = null;
-          });
-          container.addEventListener("pointermove", function (e) {
-            if (!enabled || !pts[e.pointerId]) return;
-            var p = local(e);
-            var ids = Object.keys(pts);
-            if (ids.length === 1) {
-              if (z > MIN) {
-                ox += p.x - pts[e.pointerId].x;
-                oy += p.y - pts[e.pointerId].y;
-                clampAll();
-                apply();
-              }
-              pts[e.pointerId] = p;
-            } else {
-              pts[e.pointerId] = p;
-              var a = pts[ids[0]],
-                b = pts[ids[1]];
-              var dist = Math.hypot(a.x - b.x, a.y - b.y);
-              var mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
-              if (lastDist) {
-                zoomAt(mid.x, mid.y, dist / lastDist);
-                ox += mid.x - lastMid.x;
-                oy += mid.y - lastMid.y;
-                clampAll();
-                apply();
-              }
-              lastDist = dist;
-              lastMid = mid;
-            }
-          });
-          function up(e) {
-            delete pts[e.pointerId];
-            lastDist = 0;
-            lastMid = null;
-          }
-          container.addEventListener("pointerup", up);
-          container.addEventListener("pointercancel", up);
-          container.addEventListener("pointerleave", up);
-
-          container.addEventListener(
-            "wheel",
-            function (e) {
-              if (!enabled) return;
-              e.preventDefault();
-              var dy = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 100 : 1);
-              var p = local(e);
-              zoomAt(p.x, p.y, Math.exp(-dy * 0.0018));
-            },
-            { passive: false }
-          );
-
-          return {
-            reset: function () {
-              z = 1;
-              ox = 0;
-              oy = 0;
-              clampAll();
-              apply();
-            },
-            zoomBy: function (k) {
-              var r = container.getBoundingClientRect();
-              zoomAt(r.width / 2, r.height / 2, k);
-            },
-            enable: function (on) {
-              enabled = !!on;
-              container.classList.toggle("zoomable", !!on);
-              if (!on) this.reset();
-            },
-            get scale() {
-              return z;
-            },
-          };
-        }
-
-        var stageEl = $("stage");
-        var freezeZoom = makeZoomPan(freeze, stageEl, {
-          onChange: function (z) {
-            $("zoomLevel").textContent = z.toFixed(1) + "×";
-          },
-        });
-        $("zIn").addEventListener("click", function () {
-          freezeZoom.zoomBy(1.5);
-        });
-        $("zOut").addEventListener("click", function () {
-          freezeZoom.zoomBy(1 / 1.5);
-        });
-        $("zReset").addEventListener("click", function () {
-          freezeZoom.reset();
-        });
-
-        /* ---------------- full-screen viewer ---------------- */
-        var viewer = $("viewer"),
-          viewerImg = $("viewerImg"),
-          currentItem = null;
-        var viewerZoom = makeZoomPan(viewerImg, viewer, {
-          max: 10,
-          onChange: function (z) {
-            $("viewerZoom").textContent = z.toFixed(1) + "×";
-          },
-        });
-        function openViewer(item, url) {
-          currentItem = item;
-          viewerImg.src = url;
-          $("viewerDate").textContent = fmt(item.t);
-          viewer.classList.add("open");
-          viewerZoom.enable(true);
-          viewerZoom.reset();
-        }
-        function closeViewer() {
-          viewer.classList.remove("open");
-          viewerZoom.enable(false);
-          currentItem = null;
-        }
-        $("vClose").addEventListener("click", closeViewer);
-        $("vIn").addEventListener("click", function () {
-          viewerZoom.zoomBy(1.6);
-        });
-        $("vOut").addEventListener("click", function () {
-          viewerZoom.zoomBy(1 / 1.6);
-        });
-        $("vShare").addEventListener("click", function () {
-          if (currentItem) shareShot(currentItem);
-        });
-        $("vSave").addEventListener("click", function () {
-          if (currentItem) downloadShot(currentItem);
-        });
-        window.addEventListener("keydown", function (e) {
-          if (e.key === "Escape" && viewer.classList.contains("open")) closeViewer();
-        });
-
         /* ---------------- boot ---------------- */
         function loadOpenCV() {
           return new Promise(function (resolve) {
             var s = document.createElement("script");
-            s.src = "./vendor/opencv.js";
+            s.src = "https://docs.opencv.org/4.8.0/opencv.js";
             s.async = true;
             s.onload = function () {
               var cv = window.cv;
@@ -2426,27 +1510,16 @@
               resolve(false);
             };
             s.onerror = function () {
-              var f = document.createElement("script");
-              f.async = true;
-              f.onload = s.onload;
-              f.onerror = function () {
-                resolve(false);
-              };
-              f.src = "https://docs.opencv.org/4.8.0/opencv.js";
-              document.head.appendChild(f);
+              resolve(false);
             };
             document.head.appendChild(s);
             setTimeout(function () {
               resolve(!!(window.cv && window.cv.Mat));
-            }, 8000);
+            }, 25000);
           });
         }
 
         function boot() {
-          // Jangan biar skrin "Memuatkan AI..." menutup semua butang selama-lamanya.
-          setTimeout(function () {
-            $("loader").classList.add("hide");
-          }, 8000);
           requestAnimationFrame(loop);
           startCamera().catch(function () {});
           loadOpenCV().then(function (ok) {
@@ -2456,31 +1529,13 @@
               toast("AI tidak dimuatkan — mod snap manual sahaja.");
               setStatus("Mod manual — tekan Snap", "guide");
             } else {
-              setStatus("Mod manual — letak Jack dalam bulatan tengah", "search");
+              setStatus("Mencari Jack...", "search");
             }
           });
         }
 
         document.addEventListener("visibilitychange", function () {
-          if (document.hidden) return;
-          state.steadySince = 0;
-          lastFrameAt = Date.now();
-          lastFrameTime = -1;
-          // Bila app kembali dari background, kamera selalu beku — pulihkan.
-          setTimeout(function () {
-            if (state.frozen || state.busy) return;
-            var live =
-              state.stream &&
-              state.stream.getVideoTracks &&
-              state.stream.getVideoTracks().some(function (tr) {
-                return tr.readyState === "live";
-              });
-            if (!live) restartCamera("resume");
-            else video.play().catch(function () {});
-          }, 300);
-        });
-        window.addEventListener("pageshow", function (e) {
-          if (e.persisted) restartCamera("pageshow");
+          if (!document.hidden) state.steadySince = 0;
         });
 
         if ("serviceWorker" in navigator && location.protocol !== "file:") {

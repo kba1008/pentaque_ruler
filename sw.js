@@ -1,12 +1,10 @@
-/* Petanque Referee Pro - Service Worker (offline penuh) */
-const CACHE = "petanque-ref-pro-v10";
+/* Petanque Referee Pro - Service Worker */
+const CACHE = "petanque-ref-pro-v4";
 const ASSETS = [
   "./",
   "./index.html",
   "./manifest.json",
   "./icon.png",
-  "./vendor/opencv.js",
-  "./vendor/qrcode.js",
 ];
 
 self.addEventListener("install", (event) => {
@@ -33,25 +31,25 @@ self.addEventListener("fetch", (event) => {
   const req = event.request;
   if (req.method !== "GET") return;
 
-  // Navigations: cache first for instant offline start, refresh in background.
+  // Navigations: network first, fall back to cached shell (offline support).
   if (req.mode === "navigate") {
     event.respondWith(
       (async () => {
-        const cache = await caches.open(CACHE);
-        const cached = await cache.match("./index.html");
-        const network = fetch(req)
-          .then((fresh) => {
-            cache.put("./index.html", fresh.clone());
-            return fresh;
-          })
-          .catch(() => null);
-        return cached || (await network) || Response.error();
+        try {
+          const fresh = await fetch(req);
+          const cache = await caches.open(CACHE);
+          cache.put("./index.html", fresh.clone());
+          return fresh;
+        } catch (e) {
+          const cache = await caches.open(CACHE);
+          return (await cache.match("./index.html")) || Response.error();
+        }
       })(),
     );
     return;
   }
 
-  // Other GETs: cache first, then network (stores same-origin + CDN/font responses).
+  // Other GETs: cache first, then network (and store same-origin/CDN responses).
   event.respondWith(
     (async () => {
       const cache = await caches.open(CACHE);
