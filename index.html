@@ -183,6 +183,34 @@
         pointer-events: none;
       }
 
+      /* ===================== CROSSHAIR (PANGKAH MERAH) ===================== */
+      #crosshair {
+        position: absolute;
+        z-index: 8;
+        top: 50%;
+        left: 50%;
+        width: 76px;
+        height: 76px;
+        margin: -38px 0 0 -38px;
+        pointer-events: none;
+        filter: drop-shadow(0 0 6px rgba(255, 45, 45, 0.85));
+        animation: xhairPulse 1.6s infinite ease-in-out;
+      }
+      #crosshair.off {
+        display: none;
+      }
+      @keyframes xhairPulse {
+        0%,
+        100% {
+          opacity: 0.95;
+          transform: scale(1);
+        }
+        50% {
+          opacity: 0.7;
+          transform: scale(0.97);
+        }
+      }
+
       /* ===================== LEVELER ===================== */
       #leveler {
         position: absolute;
@@ -671,6 +699,12 @@
 
       <div id="jackMark"></div>
 
+      <svg id="crosshair" viewBox="0 0 72 72" aria-hidden="true">
+        <circle cx="36" cy="36" r="27" fill="none" stroke="#ff2d2d" stroke-width="2.5" stroke-dasharray="7 6" />
+        <path d="M36 2v16M36 54v16M2 36h16M54 36h16" stroke="#ff2d2d" stroke-width="3.5" stroke-linecap="round" fill="none" />
+        <circle cx="36" cy="36" r="3.2" fill="#ff2d2d" />
+      </svg>
+
       <div class="arrow" id="arrUp">▲</div>
       <div class="arrow" id="arrDown">▼</div>
       <div class="arrow" id="arrLeft">◀</div>
@@ -1089,6 +1123,10 @@
             cv.findContours(mask, contours, hier, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
             var total = W * H,
               best = null;
+            // PANGKAH MERAH: jack MESTI berada di bawah pangkah di tengah kamera.
+            // Calon di luar zon tengah diabaikan supaya boule atau objek lain
+            // tidak tersalah kesan sebagai jack.
+            var ROI = 0.17; // jejari zon tengah (nisbah terhadap bingkai)
             for (var i = 0; i < contours.size(); i++) {
               var c = contours.get(i);
               var area = cv.contourArea(c);
@@ -1102,9 +1140,13 @@
                     x: (r.x + r.width / 2) / W,
                     y: (r.y + r.height / 2) / H,
                     r: Math.max(r.width, r.height) / 2 / W,
-                    score: circ,
                   };
-                  if (!best || cand.score > best.score) best = cand;
+                  var distC = Math.hypot(cand.x - 0.5, cand.y - 0.5);
+                  if (distC <= ROI) {
+                    // Keutamaan: paling hampir ke pangkah, kemudian paling bulat.
+                    cand.score = (1 - distC / ROI) * 2 + circ;
+                    if (!best || cand.score > best.score) best = cand;
+                  }
                 }
               }
               c.delete();
@@ -1123,11 +1165,11 @@
           }
         }
 
-        /* ---------------- boule mapping (Hough) ---------------- */
+        /* ---------------- boule mapping (Hough + edge verification) ---------------- */
         function detectBoules(canvasEl, jackPx) {
-          // Boule competition: diameter 70.5–80 mm; jack sekitar 30 mm.
-          // Saiz jack menjadi kalibrasi supaya Hough tidak menganggap corak tanah,
-          // pantulan atau garisan ukur sebagai boule tambahan.
+          // Satu bola = satu tag sahaja.
+          // Strategi: Hough longgar untuk calon -> pengesahan tepi (gradient support)
+          // -> NMS ketat supaya relang bertindih pada bola yang sama digabung.
           if (!state.cvReady || !window.cv || !jackPx || jackPx.r <= 0) return [];
           var cv = window.cv;
           var SW = 720;
@@ -1138,11 +1180,14 @@
           tmp.height = SH;
           tmp.getContext("2d").drawImage(canvasEl, 0, 0, SW, SH);
 
+          // Boule 70.5–80 mm, jack ~30 mm => nisbah jejari ~2.35–2.67 (beri toleransi).
           var expectedR = jackPx.r * 2.5;
-          var minR = Math.max(8, expectedR * 0.88 * sc);
-          var maxR = Math.max(minR + 2, expectedR * 1.12 * sc);
-          var src = null, gray = null, circles = null;
+          var minR = Math.max(8, expectedR * 0.75 * sc);
+          var maxR = Math.max(minR + 4, expectedR * 1.3 * sc);
+
+          var src = null, gray = null, circles = null, gx = null, gy = null, mag = null;
           var raw = [];
+          var magData = null, magW = 0, magH = 0, magThr = 0;
 
           try {
             src = cv.imread(tmp);
@@ -1150,67 +1195,119 @@
             cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
             cv.GaussianBlur(gray, gray, new cv.Size(7, 7), 1.6, 1.6, cv.BORDER_DEFAULT);
 
-            // Satu pass yang konservatif. minDist hampir satu diameter menghalang
-            // beberapa relang daripada terhasil pada boule yang sama.
+            // --- peta tepi untuk pengesahan bulatan ---
+            gx = new cv.Mat(); gy = new cv.Mat(); mag = new cv.Mat();
+            cv.Sobel(gray, gx, cv.CV_32F, 1, 0, 3);
+            cv.Sobel(gray, gy, cv.CV_32F, 0, 1, 3);
+            cv.magnitude(gx, gy, mag);
+            magW = mag.cols; magH = mag.rows;
+            magData = new Float32Array(mag.data32F);
+            var sum = 0;
+            for (var p = 0; p < magData.length; p += 7) sum += magData[p];
+            var mean = sum / Math.ceil(magData.length / 7);
+            magThr = Math.max(28, mean * 1.9);
+
             circles = new cv.Mat();
             cv.HoughCircles(
               gray,
               circles,
               cv.HOUGH_GRADIENT,
               1,
-              Math.max(12, Math.round(minR * 1.7)),
-              125,
-              38,
+              Math.max(14, Math.round(minR * 1.25)),
+              120,
+              30,
               Math.round(minR),
               Math.round(maxR)
             );
 
             for (var i = 0; i < circles.cols; i++) {
               raw.push({
-                x: circles.data32F[i * 3] / sc,
-                y: circles.data32F[i * 3 + 1] / sc,
-                r: circles.data32F[i * 3 + 2] / sc
+                sx: circles.data32F[i * 3],
+                sy: circles.data32F[i * 3 + 1],
+                sr: circles.data32F[i * 3 + 2]
               });
             }
           } catch (e) {
           } finally {
-            [src, gray, circles].forEach(function (m) {
+            [src, gray, circles, gx, gy, mag].forEach(function (m) {
               if (m && m.delete) { try { m.delete(); } catch (e) {} }
             });
           }
 
-          // Utamakan radius paling hampir dengan saiz fizikal boule, kemudian NMS.
-          raw.sort(function (a, b) {
-            return Math.abs(a.r - expectedR) - Math.abs(b.r - expectedR);
+          if (!raw.length || !magData) return [];
+
+          // sokongan tepi pada lilitan (0..1) untuk jejari tertentu
+          function support(x, y, r) {
+            if (r <= 2) return 0;
+            var N = 72, hit = 0, used = 0;
+            for (var i = 0; i < N; i++) {
+              var a = (i / N) * Math.PI * 2;
+              var px = Math.round(x + Math.cos(a) * r);
+              var py = Math.round(y + Math.sin(a) * r);
+              if (px < 1 || py < 1 || px >= magW - 1 || py >= magH - 1) continue;
+              used++;
+              var best = 0;
+              for (var d = -2; d <= 2; d++) {
+                var qx = Math.round(x + Math.cos(a) * (r + d));
+                var qy = Math.round(y + Math.sin(a) * (r + d));
+                if (qx < 0 || qy < 0 || qx >= magW || qy >= magH) continue;
+                var v = magData[qy * magW + qx];
+                if (v > best) best = v;
+              }
+              if (best >= magThr) hit++;
+            }
+            return used < N * 0.6 ? 0 : hit / used;
+          }
+
+          // halusi jejari: pilih jejari dengan sokongan tepi terbaik (ikut saiz sebenar bola)
+          var cands = [];
+          raw.forEach(function (c) {
+            var bestR = c.sr, bestS = support(c.sx, c.sy, c.sr);
+            for (var k = -6; k <= 6; k++) {
+              var rr = c.sr + k * (c.sr * 0.02);
+              if (rr < minR * 0.85 || rr > maxR * 1.15) continue;
+              var s = support(c.sx, c.sy, rr);
+              if (s > bestS + 0.01) { bestS = s; bestR = rr; }
+            }
+            if (bestS < 0.5) return; // bukan bola: corak tanah / bayang / pantulan
+            cands.push({
+              x: c.sx / sc,
+              y: c.sy / sc,
+              r: bestR / sc,
+              s: bestS
+            });
           });
 
-          var out = [];
-          raw.forEach(function (c) {
-            if (!isFinite(c.x) || !isFinite(c.y) || !isFinite(c.r)) return;
+          // Skor: sokongan tepi + kesesuaian saiz dengan jack
+          cands.forEach(function (c) {
+            var sizeErr = Math.abs(c.r - expectedR) / expectedR;
+            c.score = c.s * 2 - sizeErr;
+          });
+          cands.sort(function (a, b) { return b.score - a.score; });
 
+          var out = [];
+          cands.forEach(function (c) {
             var fromJack = Math.hypot(c.x - jackPx.x, c.y - jackPx.y);
-            // Tolak jack, bulatan yang merangkumi jack, dan potongan di tepi gambar.
-            if (fromJack < jackPx.r + c.r * 0.72) return;
+            // Tolak jack sendiri dan relang yang menyelubungi jack
+            if (fromJack < jackPx.r + c.r * 0.55) return;
+            // Tolak bulatan terpotong di tepi bingkai
             if (c.x - c.r < 1 || c.y - c.r < 1 ||
                 c.x + c.r > canvasEl.width - 1 || c.y + c.r > canvasEl.height - 1) return;
 
             for (var i = 0; i < out.length; i++) {
               var kept = out[i];
-              var centreGap = Math.hypot(c.x - kept.x, c.y - kept.y);
-              // Dua relang yang bertindih kuat ialah boule yang sama. Kekalkan
-              // calon paling tepat; boule sebenar yang bersentuhan masih berasingan.
-              if (centreGap < Math.min(c.r, kept.r) * 1.15) return;
+              var gap = Math.hypot(c.x - kept.x, c.y - kept.y);
+              // SATU BOLA SATU TAG: dua bola sebenar bersentuhan => gap ~ r1+r2.
+              // Apa-apa yang lebih rapat daripada 0.8*(r1+r2) dianggap bola yang sama.
+              if (gap < (c.r + kept.r) * 0.8) return;
             }
 
-            // Kunci relang kepada diameter boule rasmi relatif kepada jack.
-            // Kedudukan datang daripada Hough; radius dihadkan untuk elak relang palsu.
-            c.r = Math.max(expectedR * 0.94, Math.min(expectedR * 1.06, c.r));
             c.d = Math.max(0, fromJack - c.r - jackPx.r);
             out.push(c);
           });
 
           out.sort(function (a, b) { return a.d - b.d; });
-          return out.slice(0, 12);
+          return out.slice(0, 8);
         }
 
         /* ---------------- arrows ---------------- */
@@ -1263,7 +1360,7 @@
             hideArrows();
             countRing.classList.remove("on");
             state.steadySince = 0;
-            setStatus(state.cvReady ? "Mencari Jack..." : "Mod manual — tekan Snap", "search");
+            setStatus(state.cvReady ? "Sasarkan pangkah merah pada Jack" : "Mod manual — tekan Snap", "search");
             return;
           }
 
@@ -1279,7 +1376,7 @@
             showArrows(dx, dy, true);
             countRing.classList.remove("on");
             state.steadySince = 0;
-            setStatus("Pandu arah kamera ke Jack", "guide");
+            setStatus("Halakan pangkah merah ke pusat Jack", "guide");
             return;
           }
           hideArrows();
@@ -1401,25 +1498,46 @@
           boules.forEach(function (b, i) {
             var isClosest = i === 0;
             var col = isClosest ? "rgba(34,224,122,1)" : "rgba(0,242,254,1)";
+            // Ketebalan garis ikut saiz bola supaya relang kemas pada semua jarak
+            var bw = Math.max(2, b.r * 0.055) * (isClosest ? 1.5 : 1);
             fctx.strokeStyle = col;
-            fctx.lineWidth = isClosest ? LW * 1.4 : LW;
+            fctx.lineWidth = bw;
             fctx.beginPath();
             fctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
             fctx.stroke();
 
-            // measuring line jack -> boule edge
+            // titik pusat bola
+            fctx.fillStyle = col;
+            fctx.beginPath();
+            fctx.arc(b.x, b.y, Math.max(2, b.r * 0.07), 0, Math.PI * 2);
+            fctx.fill();
+
+            // garis ukur: tepi jack -> tepi bola (ikut jejari sebenar)
             var ang = Math.atan2(b.y - cy, b.x - cx);
+            var p1x = cx + Math.cos(ang) * jr,
+              p1y = cy + Math.sin(ang) * jr;
+            var p2x = b.x - Math.cos(ang) * b.r,
+              p2y = b.y - Math.sin(ang) * b.r;
+            fctx.lineWidth = Math.max(2, bw * 0.8);
             fctx.setLineDash(isClosest ? [] : [12, 9]);
             fctx.beginPath();
-            fctx.moveTo(cx + Math.cos(ang) * jr, cy + Math.sin(ang) * jr);
-            fctx.lineTo(b.x - Math.cos(ang) * b.r, b.y - Math.sin(ang) * b.r);
+            fctx.moveTo(p1x, p1y);
+            fctx.lineTo(p2x, p2y);
             fctx.stroke();
             fctx.setLineDash([]);
 
-            var mid = {
-              x: (cx + b.x) / 2,
-              y: (cy + b.y) / 2,
-            };
+            // tanda hujung (tick) berserenjang pada kedua-dua tepi
+            var tk = Math.max(6, b.r * 0.22);
+            var nx = -Math.sin(ang) * tk,
+              ny = Math.cos(ang) * tk;
+            fctx.beginPath();
+            fctx.moveTo(p1x - nx, p1y - ny);
+            fctx.lineTo(p1x + nx, p1y + ny);
+            fctx.moveTo(p2x - nx, p2y - ny);
+            fctx.lineTo(p2x + nx, p2y + ny);
+            fctx.stroke();
+
+            var mid = { x: (p1x + p2x) / 2, y: (p1y + p2y) / 2 };
             var cm = Math.max(0, b.d * mmPerPx) / 10;
             tag(i + 1 + " · " + cm.toFixed(1) + " cm", mid.x, mid.y, col);
             tag("#" + (i + 1), b.x, b.y - b.r - fs * 1.1, col);
@@ -1468,10 +1586,11 @@
           video.classList.remove("hidden");
           state.steadySince = 0;
           setResultMode(false);
-          setStatus("Mencari Jack...", "search");
+          setStatus("Sasarkan pangkah merah pada Jack", "search");
         }
 
         function setResultMode(on) {
+          $("crosshair").classList.toggle("off", on);
           if (on) {
             btnSnap.textContent = "Kamera Semula";
             btnSnap.classList.remove("primary");
@@ -1532,7 +1651,7 @@
               toast("AI tidak dimuatkan — mod snap manual sahaja.");
               setStatus("Mod manual — tekan Snap", "guide");
             } else {
-              setStatus("Mencari Jack...", "search");
+              setStatus("Sasarkan pangkah merah pada Jack", "search");
             }
           });
         }
