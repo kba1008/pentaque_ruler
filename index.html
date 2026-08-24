@@ -1166,10 +1166,67 @@
         }
 
         /* ---------------- boule mapping (multi-pass Hough + edge verification) ---------------- */
+function preprocessViews(cv, src) {
+          // ---- PENAPIS WARNA (colour separation) ----
+          // Masalah: warna tanah/latar kadangkala hampir sama dengan warna bola,
+          // jadi Hough pada imej kelabu biasa gagal. Kita bina beberapa "pandangan"
+          // warna yang berbeza supaya bola sentiasa menonjol pada sekurang-kurangnya
+          // satu daripadanya, kemudian gabungkan semua calon.
+          var views = [];
+          var rgb = new cv.Mat(), hsv = new cv.Mat();
+          var S = null, V = null, vEq = null, sEq = null, inv = null;
+          try {
+            cv.cvtColor(src, rgb, cv.COLOR_RGBA2RGB);
+            cv.cvtColor(rgb, hsv, cv.COLOR_RGB2HSV);
+            var ch = new cv.MatVector();
+            cv.split(hsv, ch);
+            S = ch.get(1).clone();
+            V = ch.get(2).clone();
+            ch.delete();
+
+            vEq = new cv.Mat();
+            sEq = new cv.Mat();
+            var clahe = null;
+            try {
+              clahe = new cv.CLAHE(2.6, new cv.Size(8, 8));
+              clahe.apply(V, vEq);
+              clahe.apply(S, sEq);
+            } catch (e) {
+              cv.equalizeHist(V, vEq);
+              cv.equalizeHist(S, sEq);
+            }
+            if (clahe && clahe.delete) { try { clahe.delete(); } catch (e) {} }
+
+            // Pandangan 1 — "metal": kecerahan dinaikkan, warna tepu (tanah, rumput,
+            // gravel berwarna) ditekan. Bola besi bertukar terang, latar jadi gelap.
+            inv = new cv.Mat();
+            cv.bitwise_not(sEq, inv);
+            var metal = new cv.Mat();
+            cv.addWeighted(vEq, 0.55, inv, 0.45, 0, metal);
+            cv.GaussianBlur(metal, metal, new cv.Size(5, 5), 1.2, 1.2, cv.BORDER_DEFAULT);
+            views.push(metal);
+
+            // Pandangan 2 — luminans CLAHE tulen (bola gelap / latar cerah).
+            var lum = new cv.Mat();
+            cv.GaussianBlur(vEq, lum, new cv.Size(5, 5), 1.2, 1.2, cv.BORDER_DEFAULT);
+            views.push(lum);
+
+            // Pandangan 3 — saluran ketepuan (bola berwarna atas tanah senada).
+            var sat = new cv.Mat();
+            cv.GaussianBlur(sEq, sat, new cv.Size(5, 5), 1.2, 1.2, cv.BORDER_DEFAULT);
+            views.push(sat);
+          } catch (e) {
+          } finally {
+            [rgb, hsv, S, V, vEq, sEq, inv].forEach(function (m) {
+              if (m && m.delete) { try { m.delete(); } catch (e) {} }
+            });
+          }
+          return views;
+        }
+
         function detectBoules(canvasEl, jackPx) {
-          // Pengesanan berbilang tahap: ambang pertama tepat, ambang kedua memulihkan
-          // boule gelap, berkilat, kecil atau separa terlindung. Deduplikasi dibuat
-          // berdasarkan pusat (bukan sentuhan lilitan), jadi boule rapat tidak digabung.
+          // Pengesanan berbilang pandangan warna + berbilang ambang undi.
+          // Deduplikasi dibuat berdasarkan pusat, jadi boule rapat tidak digabung.
           if (!state.cvReady || !window.cv || !jackPx || jackPx.r <= 0) return [];
           var cv = window.cv;
           var SW = Math.min(960, Math.max(720, canvasEl.width));
@@ -1184,49 +1241,67 @@
           var expectedR = jackPx.r * 2.5;
           var minR = Math.max(6, expectedR * 0.52 * sc);
           var maxR = Math.max(minR + 6, expectedR * 1.58 * sc);
-          var src = null, gray = null, smooth = null, gx = null, gy = null, mag = null;
-          var raw = [], mats = [];
+          var src = null, views = [], mats = [];
+          var raw = [];
           var magData = null, magW = 0, magH = 0, magThr = 0;
 
           try {
             src = cv.imread(tmp);
-            gray = new cv.Mat();
-            smooth = new cv.Mat();
-            cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
-            cv.GaussianBlur(gray, smooth, new cv.Size(5, 5), 1.25, 1.25, cv.BORDER_DEFAULT);
+            views = preprocessViews(cv, src);
+            if (!views.length) return [];
 
-            gx = new cv.Mat(); gy = new cv.Mat(); mag = new cv.Mat();
-            cv.Sobel(smooth, gx, cv.CV_32F, 1, 0, 3);
-            cv.Sobel(smooth, gy, cv.CV_32F, 0, 1, 3);
-            cv.magnitude(gx, gy, mag);
-            magW = mag.cols; magH = mag.rows;
-            magData = new Float32Array(mag.data32F);
-            var samples = [];
-            for (var p = 0; p < magData.length; p += 17) samples.push(magData[p]);
-            samples.sort(function(a, b) { return a - b; });
-            var q65 = samples.length ? samples[Math.floor(samples.length * 0.65)] : 20;
-            magThr = Math.max(18, q65 * 1.2);
+            views.forEach(function (view, vi) {
+              // Tenaga tepi bagi setiap pandangan, digabung ambil nilai maksimum.
+              var gx = new cv.Mat(), gy = new cv.Mat(), mag = new cv.Mat();
+              try {
+                cv.Sobel(view, gx, cv.CV_32F, 1, 0, 3);
+                cv.Sobel(view, gy, cv.CV_32F, 0, 1, 3);
+                cv.magnitude(gx, gy, mag);
+                if (!magData) {
+                  magW = mag.cols; magH = mag.rows;
+                  magData = new Float32Array(mag.data32F);
+                } else {
+                  var d = mag.data32F;
+                  for (var i = 0; i < magData.length && i < d.length; i++) {
+                    if (d[i] > magData[i]) magData[i] = d[i];
+                  }
+                }
+              } catch (e) {}
+              [gx, gy, mag].forEach(function (m) { if (m && m.delete) { try { m.delete(); } catch (e) {} } });
 
-            // Dua tahap: tepat dahulu, kemudian sensitif untuk bola yang kurang jelas.
-            [24, 17].forEach(function (voteThreshold) {
-              var circles = new cv.Mat();
-              mats.push(circles);
-              cv.HoughCircles(
-                smooth, circles, cv.HOUGH_GRADIENT, 1.15,
-                Math.max(10, Math.round(minR * 0.9)),
-                90, voteThreshold, Math.round(minR), Math.round(maxR)
-              );
-              for (var i = 0; i < circles.cols; i++) {
-                raw.push({
-                  sx: circles.data32F[i * 3],
-                  sy: circles.data32F[i * 3 + 1],
-                  sr: circles.data32F[i * 3 + 2]
-                });
-              }
+              // Pandangan utama lebih sensitif; pandangan sokongan lebih ketat
+              // supaya tidak membanjiri dengan calon palsu.
+              var thresholds = vi === 0 ? [24, 17] : [26, 20];
+              thresholds.forEach(function (voteThreshold) {
+                var circles = new cv.Mat();
+                mats.push(circles);
+                try {
+                  cv.HoughCircles(
+                    view, circles, cv.HOUGH_GRADIENT, 1.15,
+                    Math.max(10, Math.round(minR * 0.9)),
+                    90, voteThreshold, Math.round(minR), Math.round(maxR)
+                  );
+                } catch (e) { return; }
+                for (var i = 0; i < circles.cols; i++) {
+                  raw.push({
+                    sx: circles.data32F[i * 3],
+                    sy: circles.data32F[i * 3 + 1],
+                    sr: circles.data32F[i * 3 + 2]
+                  });
+                }
+              });
             });
+
+            if (magData) {
+              var samples = [];
+              for (var p = 0; p < magData.length; p += 17) samples.push(magData[p]);
+              samples.sort(function (a, b) { return a - b; });
+              var q65 = samples.length ? samples[Math.floor(samples.length * 0.65)] : 20;
+              magThr = Math.max(18, q65 * 1.2);
+            }
           } catch (e) {
           } finally {
-            [src, gray, smooth, gx, gy, mag].concat(mats).forEach(function (m) {
+            [src].concat(views).concat(mats).forEach(function (m) {
               if (m && m.delete) { try { m.delete(); } catch (e) {} }
             });
           }
@@ -1262,7 +1337,6 @@
               var s = support(c.sx, c.sy, rr);
               if (s > bestS) { bestS = s; bestR = rr; }
             }
-            // Ambang sederhana: Hough sendiri sudah memberi bukti bentuk bulat.
             if (bestS < 0.30) return;
             var item = { x: c.sx / sc, y: c.sy / sc, r: bestR / sc, s: bestS };
             var sizeErr = Math.abs(item.r - expectedR) / Math.max(1, expectedR);
@@ -1281,7 +1355,6 @@
             for (var i = 0; i < out.length; i++) {
               var kept = out[i];
               var gap = Math.hypot(c.x - kept.x, c.y - kept.y);
-              // Calon pusat yang sangat dekat sahaja dianggap bola sama.
               if (gap < Math.min(c.r, kept.r) * 0.72) return;
             }
             c.d = Math.max(0, fromJack - c.r - jackPx.r);
@@ -1383,19 +1456,27 @@
         }
 
         /* ---------------- snap + stabilizer + analysis ---------------- */
+/* ---------------- SNAP DAHULU, ANALISIS KEMUDIAN ---------------- */
+        // Kanvas simpanan gambar asal (tanpa lakaran) supaya analisis boleh
+        // diulang tanpa merosakkan gambar yang disnap.
+        var baseSnap = document.createElement("canvas");
+        var bctx = baseSnap.getContext("2d", { willReadFrequently: true });
+        var snapMeta = null; // { jr, cx, cy }
+
         function doSnap() {
           if (state.frozen || state.busy || !state.camReady) return;
           state.busy = true;
           countRing.classList.remove("on");
           state.steadySince = 0;
-          setStatus("Menstabil & menganalisis...", "guide");
 
           var vw = video.videoWidth || 1280,
             vh = video.videoHeight || 720;
           freeze.width = vw;
           freeze.height = vh;
+          baseSnap.width = vw;
+          baseSnap.height = vh;
 
-          // --- STABILIZER: recentre on jack + level the horizon (no stretching) ---
+          // --- LANGKAH 1: RAKAM GAMBAR (stabilizer: pusat pada jack + ratakan) ---
           var jx = state.jack ? state.jack.x * vw : vw / 2;
           var jy = state.jack ? state.jack.y * vh : vh / 2;
           var rot = 0;
@@ -1404,36 +1485,78 @@
           }
           var shiftX = vw / 2 - jx,
             shiftY = vh / 2 - jy;
-          var maxShift = 0.18; // clamp so we never pull in empty edges too much
+          var maxShift = 0.18;
           shiftX = Math.max(-vw * maxShift, Math.min(vw * maxShift, shiftX));
           shiftY = Math.max(-vh * maxShift, Math.min(vh * maxShift, shiftY));
-          var zoom = 1 + maxShift + Math.abs(rot) * 0.6; // cover borders, uniform scale
+          var zoom = 1 + maxShift + Math.abs(rot) * 0.6;
 
-          fctx.save();
-          fctx.fillStyle = "#000";
-          fctx.fillRect(0, 0, vw, vh);
-          fctx.filter = "brightness(1.06) contrast(1.16) saturate(1.05)";
-          fctx.translate(vw / 2, vh / 2);
-          fctx.rotate(-rot);
-          fctx.scale(zoom, zoom);
-          fctx.translate(-vw / 2 + shiftX, -vh / 2 + shiftY);
-          fctx.drawImage(video, 0, 0, vw, vh);
-          fctx.restore();
-          fctx.filter = "none";
+          bctx.save();
+          bctx.setTransform(1, 0, 0, 1, 0, 0);
+          bctx.fillStyle = "#000";
+          bctx.fillRect(0, 0, vw, vh);
+          bctx.filter = "brightness(1.06) contrast(1.16) saturate(1.05)";
+          bctx.translate(vw / 2, vh / 2);
+          bctx.rotate(-rot);
+          bctx.scale(zoom, zoom);
+          bctx.translate(-vw / 2 + shiftX, -vh / 2 + shiftY);
+          bctx.drawImage(video, 0, 0, vw, vh);
+          bctx.restore();
+          bctx.filter = "none";
 
-          // Jack now sits at the exact centre of the stabilised frame
-          var cx = vw / 2,
-            cy = vh / 2;
           var jr = (state.jack ? state.jack.r * vw : vw * 0.04) * zoom;
           if (jr < vw * 0.02) jr = vw * 0.03;
+          snapMeta = { cx: vw / 2, cy: vh / 2, jr: jr };
 
-          // --- AUTO-MAP boules around the jack ---
-          var boules = detectBoules(freeze, { x: cx, y: cy, r: jr });
-          var mmPerPx = 30 / (2 * jr); // official jack ~30 mm diameter
+          // Papar gambar yang disnap SERTA-MERTA (bukti gambar sudah diambil)
+          fctx.setTransform(1, 0, 0, 1, 0, 0);
+          fctx.clearRect(0, 0, vw, vh);
+          fctx.drawImage(baseSnap, 0, 0);
+          freeze.style.display = "block";
+          video.classList.add("hidden");
+          state.frozen = true;
+          jackMark.style.display = "none";
+          hideArrows();
+          setResultMode(true);
+          setStatus("Gambar diambil — menganalisis...", "guide");
+          if (navigator.vibrate) navigator.vibrate(60);
+
+          // --- LANGKAH 2: ANALISIS selepas gambar dipaparkan ---
+          requestAnimationFrame(function () {
+            requestAnimationFrame(function () {
+              try {
+                analyzeSnapshot();
+              } catch (e) {
+                setStatus("Gambar diambil (analisis gagal)", "done");
+              }
+              state.busy = false;
+              try {
+                saveShot(freeze.toDataURL("image/jpeg", 0.72));
+              } catch (e) {
+                toast("Gagal menyimpan rekod.");
+              }
+            });
+          });
+        }
+
+        function analyzeSnapshot() {
+          if (!snapMeta) return;
+          var vw = baseSnap.width,
+            vh = baseSnap.height;
+          var cx = snapMeta.cx,
+            cy = snapMeta.cy,
+            jr = snapMeta.jr;
+
+          // Lukis semula gambar asal dahulu (buang lakaran lama)
+          fctx.setTransform(1, 0, 0, 1, 0, 0);
+          fctx.clearRect(0, 0, vw, vh);
+          fctx.drawImage(baseSnap, 0, 0);
+
+          // --- AUTO-MAP boules di sekeliling jack (guna gambar yang disnap) ---
+          var boules = detectBoules(baseSnap, { x: cx, y: cy, r: jr });
+          var mmPerPx = 30 / (2 * jr); // jack rasmi ~30 mm diameter
 
           var LW = Math.max(3, vw * 0.0042);
           var fs = Math.max(20, vw * 0.028);
-          // keep labels readable even when many boules are tagged
           if (boules.length > 10) fs = Math.max(14, fs * (10 / boules.length) ** 0.35);
 
           // jack marker
@@ -1479,7 +1602,6 @@
           boules.forEach(function (b, i) {
             var isClosest = i === 0;
             var col = isClosest ? "rgba(34,224,122,1)" : "rgba(0,242,254,1)";
-            // Ketebalan garis ikut saiz bola supaya relang kemas pada semua jarak
             var bw = Math.max(2, b.r * 0.055) * (isClosest ? 1.5 : 1);
             fctx.strokeStyle = col;
             fctx.lineWidth = bw;
@@ -1487,13 +1609,11 @@
             fctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
             fctx.stroke();
 
-            // titik pusat bola
             fctx.fillStyle = col;
             fctx.beginPath();
             fctx.arc(b.x, b.y, Math.max(2, b.r * 0.07), 0, Math.PI * 2);
             fctx.fill();
 
-            // garis ukur: tepi jack -> tepi bola (ikut jejari sebenar)
             var ang = Math.atan2(b.y - cy, b.x - cx);
             var p1x = cx + Math.cos(ang) * jr,
               p1y = cy + Math.sin(ang) * jr;
@@ -1507,7 +1627,6 @@
             fctx.stroke();
             fctx.setLineDash([]);
 
-            // tanda hujung (tick) berserenjang pada kedua-dua tepi
             var tk = Math.max(6, b.r * 0.22);
             var nx = -Math.sin(ang) * tk,
               ny = Math.cos(ang) * tk;
@@ -1537,31 +1656,17 @@
           fctx.strokeText(verdict, fs * 0.7, fs * 2.7);
           fctx.fillText(verdict, fs * 0.7, fs * 2.7);
 
-          freeze.style.display = "block";
-          video.classList.add("hidden");
-          state.frozen = true;
-          state.busy = false;
-
           setStatus(
             boules.length
               ? "Keputusan Dianalisis! " + boules.length + " boule dipetakan"
-              : "Keputusan Dianalisis!",
+              : "Gambar diambil — tiada boule dikesan",
             "done"
           );
-          jackMark.style.display = "none";
-          hideArrows();
-          setResultMode(true);
-
-          try {
-            saveShot(freeze.toDataURL("image/jpeg", 0.72));
-          } catch (e) {
-            toast("Gagal menyimpan rekod.");
-          }
-          if (navigator.vibrate) navigator.vibrate(60);
         }
 
 
         function resume() {
+          if (state.busy) return;
           state.frozen = false;
           freeze.style.display = "none";
           video.classList.remove("hidden");
@@ -1584,6 +1689,7 @@
         }
 
         btnSnap.addEventListener("click", function () {
+          if (state.busy) return; // sedang menganalisis gambar yang baru disnap
           if (state.frozen) resume();
           else doSnap();
         });
