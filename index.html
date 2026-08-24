@@ -125,6 +125,56 @@
         border-radius: 999px;
         padding: 3px 0;
       }
+      #zoomBar button.active {
+        background: #22e07a;
+        color: #06240f;
+      }
+
+      /* ===================== EDIT BAR ===================== */
+      #editBar {
+        position: absolute;
+        z-index: 11;
+        left: 50%;
+        transform: translateX(-50%);
+        top: calc(84px + var(--safe-t, 0px));
+        display: none;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 10px;
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.82);
+        backdrop-filter: blur(10px);
+        border: 1px solid var(--glass-brd);
+        box-shadow: var(--glass-shadow);
+        max-width: calc(100% - 24px);
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      #editBar.on {
+        display: flex;
+      }
+      #editBar button {
+        border: 1px solid var(--glass-brd);
+        background: #fff;
+        color: var(--ink);
+        font-size: 13px;
+        font-weight: 700;
+        padding: 8px 12px;
+        border-radius: 12px;
+        cursor: pointer;
+      }
+      #editBar #btnEditDone {
+        background: #22e07a;
+        color: #06240f;
+      }
+      #editHint {
+        width: 100%;
+        text-align: center;
+        font-size: 11px;
+        font-weight: 600;
+        color: rgba(23, 34, 59, 0.7);
+      }
+
 
       /* ===================== LIGHTBOX ===================== */
       #lightbox {
@@ -833,7 +883,16 @@
         <div class="lvl" id="zoomLvl">1.0x</div>
         <button id="btnZoomOut" aria-label="Zoom keluar">−</button>
         <button id="btnZoomReset" aria-label="Set semula zoom">⟲</button>
+        <button id="btnEdit" aria-label="Edit bulatan">✏️</button>
       </div>
+
+      <div id="editBar">
+        <button id="btnAddBall">＋ Bola</button>
+        <button id="btnDelSel">🗑 Buang</button>
+        <button id="btnEditDone">✓ Siap</button>
+        <div id="editHint">Seret tengah = gerak · seret tepi = ubah saiz</div>
+      </div>
+
 
       <div id="countRing"><div class="fill"></div></div>
 
@@ -1060,20 +1119,43 @@
             return false;
           }
         }
+        var currentShotT = 0;
         function saveShot(dataUrl) {
           var list = readHistory();
-          list.unshift({ t: Date.now(), img: dataUrl });
+          var t = Date.now();
+          list.unshift({ t: t, img: dataUrl });
           while (list.length > 0 && !writeHistory(list)) {
             list.pop(); // quota: drop oldest until it fits
             if (list.length === 0) {
               toast("Storan penuh — rekod tidak disimpan.");
-              return;
+              return 0;
             }
           }
           if (list.length > 40) {
             list.length = 40;
             writeHistory(list);
           }
+          currentShotT = t;
+          return t;
+        }
+        // Kemas kini rekod terkini selepas pengadil edit bulatan secara manual.
+        function persistCurrentShot() {
+          if (!currentShotT) return;
+          try {
+            // Simpan versi bersih (tanpa pemegang edit)
+            var wasEditing = editing;
+            if (wasEditing) { editing = false; renderMarks(); }
+            var dataUrl = freeze.toDataURL("image/jpeg", 0.72);
+            if (wasEditing) { editing = true; renderMarks(); }
+            var list = readHistory();
+            for (var i = 0; i < list.length; i++) {
+              if (list[i].t === currentShotT) {
+                list[i].img = dataUrl;
+                writeHistory(list);
+                return;
+              }
+            }
+          } catch (e) {}
         }
         function fmt(ts) {
           var d = new Date(ts);
@@ -1764,22 +1846,40 @@ function preprocessViews(cv, src) {
           });
         }
 
+        // Keadaan bulatan yang boleh diedit pengadil secara manual.
+        var marks = null; // { jack:{x,y,r}, boules:[{x,y,r}] }
+
         function analyzeSnapshot() {
           if (!snapMeta) return;
+          var boules = detectBoules(baseSnap, {
+            x: snapMeta.cx, y: snapMeta.cy, r: snapMeta.jr
+          });
+          marks = {
+            jack: { x: snapMeta.cx, y: snapMeta.cy, r: snapMeta.jr },
+            boules: boules.map(function (b) { return { x: b.x, y: b.y, r: b.r }; })
+          };
+          renderMarks();
+        }
+
+        function renderMarks() {
+          if (!marks) return;
           var vw = baseSnap.width,
             vh = baseSnap.height;
-          var cx = snapMeta.cx,
-            cy = snapMeta.cy,
-            jr = snapMeta.jr;
+          var cx = marks.jack.x,
+            cy = marks.jack.y,
+            jr = Math.max(4, marks.jack.r);
 
           // Lukis semula gambar asal dahulu (buang lakaran lama)
           fctx.setTransform(1, 0, 0, 1, 0, 0);
           fctx.clearRect(0, 0, vw, vh);
           fctx.drawImage(baseSnap, 0, 0);
 
-          // --- AUTO-MAP boules di sekeliling jack (guna gambar yang disnap) ---
-          var boules = detectBoules(baseSnap, { x: cx, y: cy, r: jr });
           var mmPerPx = 30 / (2 * jr); // jack rasmi ~30 mm diameter
+          marks.boules.forEach(function (b) {
+            b.d = Math.max(0, Math.hypot(b.x - cx, b.y - cy) - b.r - jr);
+          });
+          marks.boules.sort(function (a, b) { return a.d - b.d; });
+          var boules = marks.boules;
 
           var LW = Math.max(3, vw * 0.0042);
           var fs = Math.max(20, vw * 0.028);
@@ -1869,6 +1969,31 @@ function preprocessViews(cv, src) {
             tag("#" + (i + 1), b.x, b.y - b.r - fs * 1.1, col);
           });
 
+          // pemegang edit (hanya semasa mod edit)
+          if (editing) {
+            var all = [marks.jack].concat(boules);
+            all.forEach(function (c) {
+              var isSel = c === selMark;
+              fctx.setLineDash([9, 7]);
+              fctx.lineWidth = Math.max(2, LW * (isSel ? 0.9 : 0.55));
+              fctx.strokeStyle = isSel ? "rgba(255,255,255,0.95)" : "rgba(255,255,255,0.55)";
+              fctx.beginPath();
+              fctx.arc(c.x, c.y, c.r, 0, Math.PI * 2);
+              fctx.stroke();
+              fctx.setLineDash([]);
+              if (isSel) {
+                // 4 pemegang saiz di tepi bulatan
+                [0, Math.PI / 2, Math.PI, -Math.PI / 2].forEach(function (a) {
+                  fctx.beginPath();
+                  fctx.fillStyle = "rgba(255,255,255,0.95)";
+                  fctx.arc(c.x + Math.cos(a) * c.r, c.y + Math.sin(a) * c.r,
+                    Math.max(5, LW * 2.2), 0, Math.PI * 2);
+                  fctx.fill();
+                });
+              }
+            });
+          }
+
           // header + verdict
           fctx.textAlign = "left";
           fctx.fillStyle = "rgba(255,255,255,0.95)";
@@ -1883,12 +2008,15 @@ function preprocessViews(cv, src) {
           fctx.fillText(verdict, fs * 0.7, fs * 2.7);
 
           setStatus(
-            boules.length
-              ? "Siap! " + boules.length + " boule dikesan dalam gambar"
-              : "Gambar diambil — tiada boule dikesan",
+            editing
+              ? "Mod edit — seret bulatan / ubah saiz"
+              : boules.length
+                ? "Siap! " + boules.length + " boule dikesan dalam gambar"
+                : "Gambar diambil — tiada boule dikesan",
             "done"
           );
         }
+
 
 
         function resume() {
@@ -1904,6 +2032,7 @@ function preprocessViews(cv, src) {
         function setResultMode(on) {
           $("crosshair").classList.toggle("off", on);
           $("zoomBar").classList.toggle("on", on);
+          if (!on) setEditMode(false);
           if (!on && typeof freezeZoom !== "undefined" && freezeZoom) freezeZoom.reset();
           if (on) {
             btnSnap.textContent = "Kamera Semula";
@@ -1921,6 +2050,141 @@ function preprocessViews(cv, src) {
           if (state.frozen) resume();
           else doSnap();
         });
+
+        /* ---------------- EDIT MANUAL BULATAN (drag + ubah saiz) ---------------- */
+        var editing = false,
+          selMark = null,
+          dragOp = null;
+
+        function setEditMode(on) {
+          editing = !!on && !!marks;
+          selMark = null;
+          dragOp = null;
+          $("editBar").classList.toggle("on", editing);
+          $("btnEdit").classList.toggle("active", editing);
+          if (marks) renderMarks();
+          if (!on && marks) persistCurrentShot();
+        }
+
+        // Tukar koordinat skrin -> koordinat piksel gambar (object-fit: contain)
+        function toImagePt(clientX, clientY) {
+          var rect = freeze.getBoundingClientRect();
+          var vw = baseSnap.width || 1,
+            vh = baseSnap.height || 1;
+          var sc = Math.min(rect.width / vw, rect.height / vh);
+          if (!sc) return null;
+          var offX = (rect.width - vw * sc) / 2,
+            offY = (rect.height - vh * sc) / 2;
+          return {
+            x: (clientX - rect.left - offX) / sc,
+            y: (clientY - rect.top - offY) / sc,
+            sc: sc
+          };
+        }
+
+        function hitTest(p) {
+          if (!marks) return null;
+          var list = marks.boules.concat([marks.jack]);
+          var best = null;
+          list.forEach(function (c) {
+            var dist = Math.hypot(p.x - c.x, p.y - c.y);
+            var slack = Math.max(c.r * 0.45, 16);
+            if (dist > c.r + slack) return;
+            var mode = dist > c.r * 0.6 ? "resize" : "move";
+            var pri = Math.abs(dist - (mode === "resize" ? c.r : 0));
+            if (!best || pri < best.pri) best = { c: c, mode: mode, pri: pri, dist: dist };
+          });
+          return best;
+        }
+
+        freeze.addEventListener(
+          "pointerdown",
+          function (e) {
+            if (!editing || !marks) return;
+            var p = toImagePt(e.clientX, e.clientY);
+            if (!p) return;
+            var hit = hitTest(p);
+            e.stopImmediatePropagation();
+            e.preventDefault();
+            if (!hit) {
+              selMark = null;
+              renderMarks();
+              return;
+            }
+            selMark = hit.c;
+            dragOp = {
+              mode: hit.mode,
+              dx: hit.c.x - p.x,
+              dy: hit.c.y - p.y,
+              isJack: hit.c === marks.jack
+            };
+            try { freeze.setPointerCapture(e.pointerId); } catch (err) {}
+            renderMarks();
+          },
+          true
+        );
+
+        freeze.addEventListener(
+          "pointermove",
+          function (e) {
+            if (!editing || !dragOp || !selMark) return;
+            e.stopImmediatePropagation();
+            e.preventDefault();
+            var p = toImagePt(e.clientX, e.clientY);
+            if (!p) return;
+            if (dragOp.mode === "move") {
+              selMark.x = p.x + dragOp.dx;
+              selMark.y = p.y + dragOp.dy;
+            } else {
+              var minR = dragOp.isJack ? 5 : 8;
+              selMark.r = Math.max(minR, Math.hypot(p.x - selMark.x, p.y - selMark.y));
+            }
+            renderMarks();
+          },
+          true
+        );
+
+        function endDrag(e) {
+          if (!editing || !dragOp) return;
+          dragOp = null;
+          e.stopImmediatePropagation();
+          renderMarks();
+          persistCurrentShot();
+        }
+        freeze.addEventListener("pointerup", endDrag, true);
+        freeze.addEventListener("pointercancel", endDrag, true);
+
+        $("btnEdit").addEventListener("click", function () {
+          if (!marks) { toast("Belum ada gambar untuk diedit."); return; }
+          setEditMode(!editing);
+        });
+        $("btnEditDone").addEventListener("click", function () {
+          setEditMode(false);
+        });
+        $("btnAddBall").addEventListener("click", function () {
+          if (!marks) return;
+          var jr = marks.jack.r;
+          var ang = Math.random() * Math.PI * 2;
+          var dist = jr * 4;
+          var nb = {
+            x: Math.min(baseSnap.width - jr, Math.max(jr, marks.jack.x + Math.cos(ang) * dist)),
+            y: Math.min(baseSnap.height - jr, Math.max(jr, marks.jack.y + Math.sin(ang) * dist)),
+            r: jr * 2.5
+          };
+          marks.boules.push(nb);
+          selMark = nb;
+          renderMarks();
+          toast("Bola ditambah — seret ke posisi betul.");
+        });
+        $("btnDelSel").addEventListener("click", function () {
+          if (!marks || !selMark) { toast("Pilih bulatan dahulu."); return; }
+          if (selMark === marks.jack) { toast("Jack tidak boleh dibuang."); return; }
+          var i = marks.boules.indexOf(selMark);
+          if (i >= 0) marks.boules.splice(i, 1);
+          selMark = null;
+          renderMarks();
+        });
+
 
         /* ---------------- zoom & pan (gambar hasil + sejarah) ---------------- */
         function attachZoomPan(el, opts) {
