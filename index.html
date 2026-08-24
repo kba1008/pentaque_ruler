@@ -882,7 +882,7 @@
       </div>
 
       <div id="topBar" class="glass">
-        <div id="brand">Petanque Referee Pro<span>Auto Jack Measure</span></div>
+        <div id="brand">Petanque Referee Pro<span>Manual Jack Measure</span></div>
         <div class="spacer"></div>
         <div id="angles">β 0.0°<br />γ 0.0°</div>
       </div>
@@ -925,7 +925,7 @@
       <div class="card row">
         <div>
           <div class="label">Auto-Snap</div>
-          <div class="hint">Tangkap automatik bila Jack di tengah &amp; rata.</div>
+          <div class="hint">Tangkap automatik bila telefon rata (Jack di bulatan tengah).</div>
         </div>
         <label class="switch">
           <input type="checkbox" id="tglAuto" checked />
@@ -1836,6 +1836,37 @@
                 try { circles.delete(); } catch (e) {}
               }
             });
+
+            // --- REFINE: Hough hanya beri anggaran kasar. Kita cari radius
+            // yang paling kuat kontras tepinya (edge fit) supaya bingkai
+            // padan dengan saiz sebenar boule. ---
+            var gw = gray.cols, gh = gray.rows, gd = gray.data;
+            function px(x, y) {
+              x = x < 0 ? 0 : x > gw - 1 ? gw - 1 : x | 0;
+              y = y < 0 ? 0 : y > gh - 1 ? gh - 1 : y | 0;
+              return gd[y * gw + x];
+            }
+            function edgeScore(cx, cy, r) {
+              if (r < 3) return 0;
+              var n = 48, sum = 0, step = Math.max(1.5, r * 0.12);
+              for (var a = 0; a < n; a++) {
+                var t = (a / n) * Math.PI * 2, ca = Math.cos(t), sa = Math.sin(t);
+                var inn = px(cx + ca * (r - step), cy + sa * (r - step));
+                var out = px(cx + ca * (r + step), cy + sa * (r + step));
+                sum += Math.abs(inn - out);
+              }
+              return sum / n;
+            }
+            raw.forEach(function (c) {
+              var cx = c.x * sc, cy = c.y * sc, r0 = c.r * sc;
+              var best = r0, bestS = -1;
+              for (var r = r0 * 0.6; r <= r0 * 1.45; r += Math.max(0.5, r0 * 0.03)) {
+                var sco = edgeScore(cx, cy, r);
+                if (sco > bestS) { bestS = sco; best = r; }
+              }
+              c.r = best / sc;
+              c.q = bestS;
+            });
           } catch (e) {
           } finally {
             [src, gray].forEach(function (m) {
@@ -1851,18 +1882,25 @@
               var dd = Math.hypot(c.x - jackPx.x, c.y - jackPx.y);
               if (dd < jackPx.r * 1.35) return; // that's the jack
             }
+            if (jackPx) {
+              // Jack rasmi ~30mm, boule rasmi ~71-80mm => jejari boule ~2.5x jack.
+              var exp = jackPx.r * 2.5;
+              if (c.r < exp * 0.45 || c.r > exp * 2.0) return; // saiz tak munasabah
+            }
             for (var i = 0; i < out.length; i++) {
               var o = out[i];
               if (Math.hypot(c.x - o.x, c.y - o.y) < Math.max(o.r, c.r) * 0.85) {
-                // same boule seen twice -> average it
-                o.x = (o.x + c.x) / 2;
-                o.y = (o.y + c.y) / 2;
-                o.r = (o.r + c.r) / 2;
+                // same boule seen twice -> ambil yang tepinya paling jelas
+                var wo = o.q || 1, wc = c.q || 1, tw = wo + wc;
+                o.x = (o.x * wo + c.x * wc) / tw;
+                o.y = (o.y * wo + c.y * wc) / tw;
+                o.r = (o.r * wo + c.r * wc) / tw;
+                o.q = Math.max(wo, wc);
                 o.n = (o.n || 1) + 1;
                 return;
               }
             }
-            out.push({ x: c.x, y: c.y, r: c.r, n: 1 });
+            out.push({ x: c.x, y: c.y, r: c.r, q: c.q || 1, n: 1 });
           });
 
           if (jackPx) {
@@ -1898,26 +1936,11 @@
           requestAnimationFrame(loop);
           if (state.frozen || state.busy || document.hidden) return;
 
-          if (ts - lastDetect > detectEvery) {
-            lastDetect = ts;
-            var t0 = performance.now();
-            var d = detectJack();
-            // Selaraskan kadar imbasan ikut kelajuan peranti supaya UI kekal lancar.
-            var cost = performance.now() - t0;
-            detectEvery = Math.max(120, Math.min(600, cost * 3));
-            if (d) {
-              d.ts = ts;
-              // smooth to reduce jitter
-              if (state.jack) {
-                d.x = state.jack.x * 0.45 + d.x * 0.55;
-                d.y = state.jack.y * 0.45 + d.y * 0.55;
-                d.r = state.jack.r * 0.5 + d.r * 0.5;
-              }
-              state.jack = d;
-            } else if (state.jack && ts - (state.jack.ts || 0) > 1200) {
-              state.jack = null;
-            }
-          }
+          // AUTO-KESAN JACK DIMATIKAN: Jack dianggap berada di tengah bidikan.
+          // Skala diambil dari bulatan bidik (letak Jack tepat memenuhi bulatan).
+          var _stg = document.getElementById("stage");
+          var _sw = (_stg && _stg.clientWidth) || window.innerWidth || 360;
+          state.jack = { x: 0.5, y: 0.5, r: 35 / _sw, ts: ts };
 
           var jack = state.jack;
           var level =
@@ -1931,7 +1954,7 @@
             hideArrows();
             countRing.classList.remove("on");
             state.steadySince = 0;
-            setStatus(state.cvReady ? "Mencari Jack..." : "Mod manual — tekan Snap", "search");
+            setStatus("Mod manual — letak Jack dalam bulatan tengah", "search");
             return;
           }
 
@@ -2207,7 +2230,7 @@
           video.classList.remove("hidden");
           state.steadySince = 0;
           setResultMode(false);
-          setStatus("Mencari Jack...", "search");
+          setStatus("Mod manual — letak Jack dalam bulatan tengah", "search");
         }
 
         function setResultMode(on) {
@@ -2471,7 +2494,7 @@
               toast("AI tidak dimuatkan — mod snap manual sahaja.");
               setStatus("Mod manual — tekan Snap", "guide");
             } else {
-              setStatus("Mencari Jack...", "search");
+              setStatus("Mod manual — letak Jack dalam bulatan tengah", "search");
             }
           });
         }
