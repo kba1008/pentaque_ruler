@@ -1,12 +1,11 @@
 /* Petanque Referee Pro - Service Worker (offline penuh) */
-const CACHE = "petanque-ref-pro-v10";
+const CACHE = "petanque-ref-pro-v6";
 const ASSETS = [
   "./",
   "./index.html",
   "./manifest.json",
   "./icon.png",
   "./vendor/opencv.js",
-  "./vendor/qrcode.js",
 ];
 
 self.addEventListener("install", (event) => {

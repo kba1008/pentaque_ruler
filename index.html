@@ -240,67 +240,19 @@
         height: 34px;
         margin: -17px 0 0 -17px;
         border-radius: 50%;
-        /* ring sahaja — tengah kosong supaya mudah aim Jack */
-        background: none;
-        border: 2px solid rgba(255, 255, 255, 0.8);
-        box-shadow: 0 0 6px rgba(0, 0, 0, 0.35);
+        background: var(--grad-primary);
+        box-shadow:
+          0 6px 14px rgba(0, 0, 0, 0.3),
+          0 0 0 3px rgba(255, 255, 255, 0.6) inset;
         transition:
           background 0.2s ease,
-          border-color 0.2s ease,
           box-shadow 0.2s ease;
-      }
-      #levelHint {
-        position: absolute;
-        left: 50%;
-        top: 100%;
-        transform: translate(-50%, 10px);
-        white-space: nowrap;
-        font-size: 12px;
-        font-weight: 600;
-        color: #fff;
-        text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
-        background: rgba(10, 20, 40, 0.35);
-        padding: 4px 10px;
-        border-radius: 999px;
-      }
-      #levelBarWrap {
-        position: absolute;
-        left: 50%;
-        bottom: 100%;
-        transform: translate(-50%, -10px);
-        width: 150px;
-        height: 6px;
-        border-radius: 999px;
-        background: rgba(255, 255, 255, 0.25);
-        overflow: hidden;
-      }
-      #levelBar {
-        height: 100%;
-        width: 0%;
-        border-radius: 999px;
-        background: var(--grad-primary);
-        transition: width 0.15s linear;
-      }
-      #leveler.near {
-        border-color: rgba(255, 214, 102, 0.95);
-        box-shadow: 0 0 18px rgba(255, 214, 102, 0.55);
       }
       #leveler.level {
         border-color: var(--green);
         box-shadow: 0 0 26px rgba(34, 224, 122, 0.75);
       }
-      #leveler.found #bubble {
-        border-color: var(--green);
-        box-shadow: 0 0 10px rgba(34, 224, 122, 0.7);
-      }
       #leveler.level #bubble {
-        background: none;
-        border-color: var(--green);
-        box-shadow:
-          0 0 12px rgba(34, 224, 122, 0.8),
-          0 0 12px rgba(34, 224, 122, 0.5) inset;
-      }
-      #leveler.level #levelBar {
         background: linear-gradient(135deg, #22e07a 0%, #06d6a0 100%);
       }
 
@@ -514,23 +466,6 @@
         transition:
           transform 0.28s ease,
           opacity 0.28s ease;
-      }
-      .panel {
-        overflow-y: auto;
-        -webkit-overflow-scrolling: touch;
-        overscroll-behavior: contain;
-      }
-      .panel > .card,
-      .panel > .panel-actions,
-      .panel > h2,
-      .panel > p.sub {
-        flex: 0 0 auto;
-      }
-      #panelHistory {
-        overflow: hidden;
-      }
-      #histList {
-        min-height: 0;
       }
       .panel.open {
         display: flex;
@@ -875,14 +810,12 @@
       <div id="countRing"><div class="fill"></div></div>
 
       <div id="leveler">
-        <div id="levelBarWrap"><div id="levelBar"></div></div>
         <div id="levelTarget"></div>
         <div id="bubble"></div>
-        <div id="levelHint">Rata: —</div>
       </div>
 
       <div id="topBar" class="glass">
-        <div id="brand">Petanque Referee Pro<span>Manual Jack Measure</span></div>
+        <div id="brand">Petanque Referee Pro<span>Auto Jack Measure</span></div>
         <div class="spacer"></div>
         <div id="angles">β 0.0°<br />γ 0.0°</div>
       </div>
@@ -925,7 +858,7 @@
       <div class="card row">
         <div>
           <div class="label">Auto-Snap</div>
-          <div class="hint">Tangkap automatik bila telefon rata (Jack di bulatan tengah).</div>
+          <div class="hint">Tangkap automatik bila Jack di tengah &amp; rata.</div>
         </div>
         <label class="switch">
           <input type="checkbox" id="tglAuto" checked />
@@ -939,66 +872,6 @@
           <div class="hint" id="gyroHint">Ketuk untuk benarkan (iOS).</div>
         </div>
         <button class="btn" id="btnGyro" style="flex: 0 0 auto; width: 120px">Benarkan</button>
-      </div>
-
-      <div class="card row">
-        <div>
-          <div class="label">Kalibrasi Rata (Tare)</div>
-          <div class="hint" id="calHint">
-            Letak telefon pada kedudukan pegang biasa, kemudian tekan Set. Kedudukan itu jadi
-            paras rata baharu.
-          </div>
-        </div>
-        <button class="btn" id="btnCal" style="flex: 0 0 auto; width: 120px">Set</button>
-      </div>
-
-      <div class="card row">
-        <div>
-          <div class="label">Set Semula Kalibrasi</div>
-          <div class="hint">Kembali kepada paras rata asal (0°).</div>
-        </div>
-        <button class="btn" id="btnCalReset" style="flex: 0 0 auto; width: 120px">Reset</button>
-      </div>
-
-      <div class="card row">
-        <div>
-          <div class="label">Mod Mudah Balance</div>
-          <div class="hint">Toleransi lebih longgar + penstabil bacaan sensor.</div>
-        </div>
-        <label class="switch">
-          <input type="checkbox" id="tglEasy" checked />
-          <span class="track"></span><span class="knob"></span>
-        </label>
-      </div>
-
-      <div class="card">
-        <div class="label">Kongsi Aplikasi</div>
-        <div class="hint" style="margin-bottom: 10px">
-          Imbas QR atau kongsi pautan supaya rakan pengadil boleh pasang app ini.
-        </div>
-        <div style="display: flex; justify-content: center; margin: 6px 0 12px">
-          <div
-            id="qrBox"
-            style="background: #fff; padding: 10px; border-radius: 12px; line-height: 0"
-          ></div>
-        </div>
-        <div
-          id="appLinkText"
-          class="hint"
-          style="word-break: break-all; text-align: center; margin-bottom: 10px"
-        ></div>
-        <div style="display: flex; gap: 8px">
-          <button class="btn" id="btnShareApp">Kongsi Pautan</button>
-          <button class="btn" id="btnCopyLink">Salin</button>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="label">Cadangan &amp; Maklum Balas</div>
-        <div class="hint" style="margin-bottom: 10px">
-          Ada cadangan penambahbaikan? WhatsApp terus ke 011-1066 1077.
-        </div>
-        <button class="btn primary" id="btnWhatsApp">WhatsApp Cadangan</button>
       </div>
 
       <div class="panel-actions">
@@ -1041,7 +914,6 @@
 
     <div id="toast"></div>
 
-    <script src="./vendor/qrcode.js"></script>
     <script>
       /* =========================================================
          Petanque Referee Pro — vanilla JS
@@ -1071,21 +943,7 @@
         };
         var btnSnap = $("btnSnap");
 
-        var LS = {
-          grid: "prp.grid",
-          auto: "prp.auto",
-          easy: "prp.easy",
-          calB: "prp.calB",
-          calG: "prp.calG",
-        };
-        function getNum(key, dflt) {
-          try {
-            var v = parseFloat(localStorage.getItem(key));
-            return isFinite(v) ? v : dflt;
-          } catch (e) {
-            return dflt;
-          }
-        }
+        var LS = { grid: "prp.grid", auto: "prp.auto" };
         var state = {
           cvReady: false,
           camReady: false,
@@ -1097,13 +955,6 @@
           steadySince: 0,
           auto: true,
           busy: false,
-          stream: null,
-          camRestarting: false,
-          easy: true,
-          rawBeta: 0,
-          rawGamma: 0,
-          calB: 0,
-          calG: 0,
         };
 
         /* ---------------- helpers ---------------- */
@@ -1173,59 +1024,6 @@
             closePanel(b.getAttribute("data-close"));
           });
         });
-
-        /* ---------------- kongsi app: pautan, QR, WhatsApp ---------------- */
-        var APP_LINK = location.origin + location.pathname.replace(/[^/]*$/, "");
-        var WA_NUMBER = "601110661077";
-        (function initShare() {
-          var t = $("appLinkText");
-          if (t) t.textContent = APP_LINK;
-          try {
-            if (typeof qrcode === "function") {
-              var qr = qrcode(0, "M");
-              qr.addData(APP_LINK);
-              qr.make();
-              $("qrBox").innerHTML = qr.createSvgTag({ cellSize: 5, margin: 0 });
-            }
-          } catch (e) {
-            $("qrBox").innerHTML = '<div style="color:#111;font:12px sans-serif">QR gagal dijana</div>';
-          }
-          $("btnShareApp").addEventListener("click", function () {
-            var data = {
-              title: "Petanque Referee Pro",
-              text: "Aplikasi pengadil petanque - ukur jarak boule dengan kamera.",
-              url: APP_LINK,
-            };
-            if (navigator.share) navigator.share(data).catch(function () {});
-            else copyLink();
-          });
-          function copyLink() {
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-              navigator.clipboard.writeText(APP_LINK).then(function () {
-                toast("Pautan disalin");
-              });
-            } else {
-              var ta = document.createElement("textarea");
-              ta.value = APP_LINK;
-              document.body.appendChild(ta);
-              ta.select();
-              try {
-                document.execCommand("copy");
-                toast("Pautan disalin");
-              } catch (e) {}
-              document.body.removeChild(ta);
-            }
-          }
-          $("btnCopyLink").addEventListener("click", copyLink);
-          $("btnWhatsApp").addEventListener("click", function () {
-            var msg =
-              "Salam, saya ada cadangan untuk aplikasi Petanque Referee Pro:\n\n";
-            window.open(
-              "https://wa.me/" + WA_NUMBER + "?text=" + encodeURIComponent(msg),
-              "_blank",
-            );
-          });
-        })();
 
         /* ---------------- storage: IndexedDB (peranti sahaja) ---------------- */
         var DB_NAME = "prp-db",
@@ -1444,21 +1242,21 @@
         });
 
         /* ---------------- gyroscope ---------------- */
-        var levelHintEl = $("levelHint"),
-          levelBarEl = $("levelBar");
-        var smB = null,
-          smG = null;
-
-        function levelTol() {
-          return state.easy ? 9 : 5;
-        }
-
-        function updateLevelUI() {
+        function onOrient(e) {
+          if (e.beta === null && e.gamma === null) return;
+          state.gyroOK = true;
+          state.beta = e.beta || 0;
+          state.gamma = e.gamma || 0;
+          // Flat-on-ground reference: beta ~ 0 (phone screen up) when pointing down we use raw beta.
           var b = state.beta,
             g = state.gamma;
-          var tol = levelTol();
+          if (b > 90) b = 180 - b;
+          if (b < -90) b = -180 - b;
+          state.beta = b;
+          angles.innerHTML =
+            "β " + b.toFixed(1) + "°<br>γ " + g.toFixed(1) + "°";
           var R = 75 - 17; // container radius - bubble radius
-          var max = state.easy ? 20 : 12; // degrees mapped to edge (easy = less twitchy)
+          var max = 25; // degrees mapped to edge
           var x = Math.max(-1, Math.min(1, g / max)) * R;
           var y = Math.max(-1, Math.min(1, b / max)) * R;
           var d = Math.sqrt(x * x + y * y);
@@ -1467,84 +1265,7 @@
             y = (y / d) * R;
           }
           bubble.style.transform = "translate(" + x + "px," + y + "px)";
-
-          var err = Math.max(Math.abs(b), Math.abs(g));
-          var pct = Math.max(0, Math.min(100, (1 - err / (tol * 3)) * 100));
-          if (levelBarEl) levelBarEl.style.width = pct.toFixed(0) + "%";
-          leveler.classList.toggle("near", err >= tol && err < tol * 2);
-
-          var txt;
-          if (err < tol) {
-            txt = "Rata ✓ tahan telefon";
-          } else {
-            var parts = [];
-            if (Math.abs(g) >= tol) parts.push(g > 0 ? "turunkan sisi kanan" : "turunkan sisi kiri");
-            if (Math.abs(b) >= tol) parts.push(b > 0 ? "tundukkan sedikit" : "dongakkan sedikit");
-            txt = parts.join(" • ") + "  (" + err.toFixed(1) + "°)";
-          }
-          if (levelHintEl) levelHintEl.textContent = txt;
         }
-
-        function onOrient(e) {
-          if (e.beta === null && e.gamma === null) return;
-          state.gyroOK = true;
-          var b = e.beta || 0,
-            g = e.gamma || 0;
-          if (b > 90) b = 180 - b;
-          if (b < -90) b = -180 - b;
-          state.rawBeta = b;
-          state.rawGamma = g;
-
-          // apply calibration (tare)
-          b -= state.calB;
-          g -= state.calG;
-
-          // low-pass smoothing so the bubble stops jumping
-          var k = state.easy ? 0.18 : 0.4;
-          smB = smB === null ? b : smB + (b - smB) * k;
-          smG = smG === null ? g : smG + (g - smG) * k;
-
-          // dead-zone: tiny hand tremor is ignored
-          var dz = state.easy ? 0.6 : 0.2;
-          state.beta = Math.abs(smB) < dz ? 0 : smB;
-          state.gamma = Math.abs(smG) < dz ? 0 : smG;
-
-          angles.innerHTML =
-            "\u03b2 " + state.beta.toFixed(1) + "\u00b0<br>\u03b3 " + state.gamma.toFixed(1) + "\u00b0";
-          updateLevelUI();
-        }
-
-        function calibrateLevel() {
-          if (!state.gyroOK) {
-            toast("Sensor belum aktif. Tekan Benarkan dahulu.");
-            return;
-          }
-          state.calB = state.rawBeta;
-          state.calG = state.rawGamma;
-          smB = smG = null;
-          try {
-            localStorage.setItem(LS.calB, String(state.calB));
-            localStorage.setItem(LS.calG, String(state.calG));
-          } catch (err) {}
-          $("calHint").textContent =
-            "Kalibrasi disimpan (\u03b2 " +
-            state.calB.toFixed(1) +
-            "\u00b0, \u03b3 " +
-            state.calG.toFixed(1) +
-            "\u00b0).";
-          toast("Kalibrasi rata disimpan.");
-        }
-        function resetCalibration() {
-          state.calB = state.calG = 0;
-          smB = smG = null;
-          try {
-            localStorage.removeItem(LS.calB);
-            localStorage.removeItem(LS.calG);
-          } catch (err) {}
-          $("calHint").textContent = "Kalibrasi asal (0\u00b0).";
-          toast("Kalibrasi di-reset.");
-        }
-
         function enableGyro() {
           var DOE = window.DeviceOrientationEvent;
           if (!DOE) {
@@ -1570,19 +1291,6 @@
           }
         }
         $("btnGyro").addEventListener("click", enableGyro);
-        $("btnCal").addEventListener("click", calibrateLevel);
-        $("btnCalReset").addEventListener("click", resetCalibration);
-        state.calB = getNum(LS.calB, 0);
-        state.calG = getNum(LS.calG, 0);
-        state.easy = getBool(LS.easy, true);
-        $("tglEasy").checked = state.easy;
-        $("tglEasy").addEventListener("change", function () {
-          state.easy = this.checked;
-          try {
-            localStorage.setItem(LS.easy, state.easy ? "1" : "0");
-          } catch (e) {}
-          smB = smG = null;
-        });
         enableGyro();
 
         /* ---------------- camera ---------------- */
@@ -1596,9 +1304,8 @@
             audio: false,
             video: {
               facingMode: { ideal: "environment" },
-              width: { ideal: 1280 },
-              height: { ideal: 720 },
-              frameRate: { ideal: 30, max: 30 },
+              width: { ideal: 1920 },
+              height: { ideal: 1080 },
             },
           };
           return navigator.mediaDevices
@@ -1607,18 +1314,11 @@
               return navigator.mediaDevices.getUserMedia({ video: true, audio: false });
             })
             .then(function (stream) {
-              stopStream();
-              state.stream = stream;
               video.srcObject = stream;
-              video.setAttribute("playsinline", "");
-              video.muted = true;
               return video.play();
             })
             .then(function () {
               state.camReady = true;
-              state.camRestarting = false;
-              lastFrameTime = -1;
-              lastFrameAt = Date.now();
             })
             .catch(function (err) {
               var msg = "Kamera tidak dapat dibuka.";
@@ -1632,87 +1332,6 @@
               throw err;
             });
         }
-
-        /* ---------------- camera watchdog (auto-recover bila kamera jam) ---------------- */
-        function stopStream() {
-          try {
-            var st = state.stream || (video.srcObject || null);
-            if (st && st.getTracks) {
-              st.getTracks().forEach(function (t) {
-                try {
-                  t.stop();
-                } catch (e) {}
-              });
-            }
-          } catch (e) {}
-          state.stream = null;
-          try {
-            video.srcObject = null;
-          } catch (e) {}
-        }
-
-        var lastFrameTime = -1,
-          lastFrameAt = Date.now(),
-          stallHits = 0;
-
-        var lastRestartAt = 0;
-        function restartCamera(reason) {
-          if (state.camRestarting || state.busy || state.frozen) return;
-          // Elak restart bertalu-talu (punca app rasa "kejap ok kejap tak").
-          if (Date.now() - lastRestartAt < 8000) return;
-          lastRestartAt = Date.now();
-          state.camRestarting = true;
-          state.camReady = false;
-          setStatus("Memulakan semula kamera...", "guide");
-          stopStream();
-          setTimeout(function () {
-            startCamera().catch(function () {
-              state.camRestarting = false;
-            });
-          }, 250);
-        }
-
-        function watchCamera() {
-          if (state.frozen || state.busy || state.camRestarting || document.hidden) return;
-          var now = Date.now();
-          if (!state.camReady) return;
-          var t = video.currentTime;
-          var live =
-            state.stream &&
-            state.stream.getVideoTracks &&
-            state.stream.getVideoTracks().some(function (tr) {
-              return tr.readyState === "live" && !tr.muted;
-            });
-          if (t !== lastFrameTime && !video.paused) {
-            lastFrameTime = t;
-            lastFrameAt = now;
-            return;
-          }
-          if (video.paused) {
-            video.play().catch(function () {});
-          }
-          if (!live || now - lastFrameAt > 6000) {
-            stallHits++;
-          } else {
-            stallHits = 0;
-          }
-          if (stallHits >= 2) {
-            stallHits = 0;
-            lastFrameAt = now;
-            restartCamera("stall");
-          }
-        }
-        setInterval(watchCamera, 1000);
-        video.addEventListener("ended", function () {
-          restartCamera("ended");
-        });
-        document.addEventListener("visibilitychange", function () {
-          if (!document.hidden) {
-            lastFrameAt = Date.now();
-            stallHits = 0;
-            if (video.paused) video.play().catch(function () {});
-          }
-        });
 
         /* ---------------- OpenCV detection ---------------- */
         var work = document.createElement("canvas");
@@ -1792,7 +1411,7 @@
           // returns array of {x,y,r,d} in canvasEl pixels, sorted nearest -> farthest
           if (!state.cvReady || !window.cv) return [];
           var cv = window.cv;
-          var SW = 640; // imbangan antara ketepatan dan kelajuan pada telefon
+          var SW = 720; // higher resolution => small/far boules are not missed
           var sc = SW / canvasEl.width;
           var SH = Math.max(1, Math.round(canvasEl.height * sc));
           var tmp = document.createElement("canvas");
@@ -1813,9 +1432,7 @@
               { minDist: SW * 0.04, p1: 90, p2: 24, minR: SW * 0.012, maxR: SW * 0.14 },
               { minDist: SW * 0.06, p1: 140, p2: 44, minR: SW * 0.05, maxR: SW * 0.26 }
             ];
-            passes.forEach(function (o, pi) {
-              // pas ketiga hanya bila dua pas pertama tak jumpa cukup bola
-              if (pi === 2 && raw.length >= 2) return;
+            passes.forEach(function (o) {
               var circles = new cv.Mat();
               try {
                 cv.HoughCircles(
@@ -1890,33 +1507,43 @@
 
         /* ---------------- main loop ---------------- */
         var CENTER_TOL = 0.12; // easier to center (12% of frame)
-        var LEVEL_TOL = 6; // fallback; live value comes from levelTol()
+        var LEVEL_TOL = 6; // degrees — stabilizer corrects the rest
         var HOLD_MS = 900;
         var lastDetect = 0,
           detectEvery = 150;
         function loop(ts) {
           requestAnimationFrame(loop);
-          if (state.frozen || state.busy || document.hidden) return;
+          if (state.frozen || state.busy) return;
 
-          // AUTO-KESAN JACK DIMATIKAN: Jack dianggap berada di tengah bidikan.
-          // Skala diambil dari bulatan bidik (letak Jack tepat memenuhi bulatan).
-          var _stg = document.getElementById("stage");
-          var _sw = (_stg && _stg.clientWidth) || window.innerWidth || 360;
-          state.jack = { x: 0.5, y: 0.5, r: 35 / _sw, ts: ts };
+          if (ts - lastDetect > detectEvery) {
+            lastDetect = ts;
+            var d = detectJack();
+            if (d) {
+              d.ts = ts;
+              // smooth to reduce jitter
+              if (state.jack) {
+                d.x = state.jack.x * 0.45 + d.x * 0.55;
+                d.y = state.jack.y * 0.45 + d.y * 0.55;
+                d.r = state.jack.r * 0.5 + d.r * 0.5;
+              }
+              state.jack = d;
+            } else if (state.jack && ts - (state.jack.ts || 0) > 1200) {
+              state.jack = null;
+            }
+          }
 
           var jack = state.jack;
           var level =
             !state.gyroOK ||
-            (Math.abs(state.beta) < levelTol() && Math.abs(state.gamma) < levelTol());
+            (Math.abs(state.beta) < LEVEL_TOL && Math.abs(state.gamma) < LEVEL_TOL);
           leveler.classList.toggle("level", level);
-          leveler.classList.toggle("found", !!state.jack);
 
           if (!jack) {
             jackMark.style.display = "none";
             hideArrows();
             countRing.classList.remove("on");
             state.steadySince = 0;
-            setStatus("Mod manual — letak Jack dalam bulatan tengah", "search");
+            setStatus(state.cvReady ? "Mencari Jack..." : "Mod manual — tekan Snap", "search");
             return;
           }
 
@@ -1940,12 +1567,7 @@
           if (!level) {
             countRing.classList.remove("on");
             state.steadySince = 0;
-            setStatus(
-              levelHintEl && levelHintEl.textContent
-                ? "Ratakan: " + levelHintEl.textContent
-                : "Ratakan Timbang Air",
-              "guide",
-            );
+            setStatus("Ratakan Timbang Air", "guide");
             return;
           }
 
@@ -2001,35 +1623,6 @@
           fctx.restore();
           fctx.filter = "none";
 
-          // Papar frame beku serta-merta supaya butang terasa responsif,
-          // analisis berat dijalankan selepas skrin dikemas kini.
-          freeze.style.display = "block";
-          video.classList.add("hidden");
-          state.frozen = true;
-          jackMark.style.display = "none";
-          hideArrows();
-          setStatus("Menganalisis...", "guide");
-          var snapGuard = setTimeout(function () {
-            if (state.busy) {
-              state.busy = false;
-              setStatus("Analisis terlalu lama. Cuba lagi.", "");
-            }
-          }, 12000);
-          requestAnimationFrame(function () {
-            setTimeout(function () {
-              try {
-                finishSnap();
-              } catch (e) {
-                state.busy = false;
-                setStatus("Analisis gagal. Cuba lagi.", "");
-              } finally {
-                clearTimeout(snapGuard);
-              }
-            }, 0);
-          });
-
-          function finishSnap() {
-
           // Jack now sits at the exact centre of the stabilised frame
           var cx = vw / 2,
             cy = vh / 2;
@@ -2041,9 +1634,9 @@
           var mmPerPx = 30 / (2 * jr); // official jack ~30 mm diameter
 
           var LW = Math.max(3, vw * 0.0042);
-          var fs = Math.max(14, vw * 0.019); // lebih kecil supaya tak ganggu fokus
+          var fs = Math.max(20, vw * 0.028);
           // keep labels readable even when many boules are tagged
-          if (boules.length > 10) fs = Math.max(11, fs * (10 / boules.length) ** 0.35);
+          if (boules.length > 10) fs = Math.max(14, fs * (10 / boules.length) ** 0.35);
 
           // jack marker
           fctx.lineWidth = LW;
@@ -2066,12 +1659,10 @@
           fctx.textBaseline = "middle";
 
           function tag(text, x, y, color) {
-            var pad = fs * 0.34;
+            var pad = fs * 0.42;
             var w = fctx.measureText(text).width + pad * 2;
-            var h = fs * 1.28;
-            var prevA = fctx.globalAlpha;
-            fctx.globalAlpha = 0.34; // latar telus — bola & jack kekal jelas
-            fctx.fillStyle = "rgba(0,0,0,1)";
+            var h = fs * 1.5;
+            fctx.fillStyle = "rgba(0,0,0,0.6)";
             fctx.beginPath();
             var rr = h / 2;
             fctx.moveTo(x - w / 2 + rr, y - h / 2);
@@ -2081,27 +1672,24 @@
             fctx.arcTo(x - w / 2, y - h / 2, x + w / 2, y - h / 2, rr);
             fctx.closePath();
             fctx.fill();
-            fctx.globalAlpha = 0.82;
             fctx.fillStyle = color;
             fctx.fillText(text, x, y);
-            fctx.globalAlpha = prevA;
           }
 
           function badge(text, x, y, color, br) {
-            // nombor boule di TENGAH bola: kecil + telus, tiada latar hitam
-            var size = Math.max(fs * 0.6, Math.min(br * 0.55, fs * 0.95));
+            // nombor boule diletak tepat di TENGAH bola
+            var rad = Math.max(fs * 0.72, Math.min(br * 0.62, fs * 1.5));
+            fctx.beginPath();
+            fctx.arc(x, y, rad, 0, Math.PI * 2);
+            fctx.fillStyle = "rgba(0,0,0,0.62)";
+            fctx.fill();
+            fctx.lineWidth = Math.max(2, LW * 0.8);
+            fctx.strokeStyle = color;
+            fctx.stroke();
             var prev = fctx.font;
-            var prevA = fctx.globalAlpha;
-            fctx.font = "700 " + Math.round(size) + "px Poppins, sans-serif";
-            // outline nipis gelap supaya kekal terbaca atas bola cerah
-            fctx.globalAlpha = 0.35;
-            fctx.lineWidth = Math.max(1.5, size * 0.12);
-            fctx.strokeStyle = "rgba(0,0,0,1)";
-            fctx.strokeText(text, x, y);
-            fctx.globalAlpha = 0.72;
+            fctx.font = "800 " + Math.round(rad * 1.15) + "px Poppins, sans-serif";
             fctx.fillStyle = color;
             fctx.fillText(text, x, y);
-            fctx.globalAlpha = prevA;
             fctx.font = prev;
           }
 
@@ -2180,7 +1768,6 @@
             toast("Gagal menyimpan rekod.");
           }
           if (navigator.vibrate) navigator.vibrate(60);
-          }
         }
 
 
@@ -2192,7 +1779,7 @@
           video.classList.remove("hidden");
           state.steadySince = 0;
           setResultMode(false);
-          setStatus("Mod manual — letak Jack dalam bulatan tengah", "search");
+          setStatus("Mencari Jack...", "search");
         }
 
         function setResultMode(on) {
@@ -2438,15 +2025,11 @@
             document.head.appendChild(s);
             setTimeout(function () {
               resolve(!!(window.cv && window.cv.Mat));
-            }, 8000);
+            }, 25000);
           });
         }
 
         function boot() {
-          // Jangan biar skrin "Memuatkan AI..." menutup semua butang selama-lamanya.
-          setTimeout(function () {
-            $("loader").classList.add("hide");
-          }, 8000);
           requestAnimationFrame(loop);
           startCamera().catch(function () {});
           loadOpenCV().then(function (ok) {
@@ -2456,31 +2039,13 @@
               toast("AI tidak dimuatkan — mod snap manual sahaja.");
               setStatus("Mod manual — tekan Snap", "guide");
             } else {
-              setStatus("Mod manual — letak Jack dalam bulatan tengah", "search");
+              setStatus("Mencari Jack...", "search");
             }
           });
         }
 
         document.addEventListener("visibilitychange", function () {
-          if (document.hidden) return;
-          state.steadySince = 0;
-          lastFrameAt = Date.now();
-          lastFrameTime = -1;
-          // Bila app kembali dari background, kamera selalu beku — pulihkan.
-          setTimeout(function () {
-            if (state.frozen || state.busy) return;
-            var live =
-              state.stream &&
-              state.stream.getVideoTracks &&
-              state.stream.getVideoTracks().some(function (tr) {
-                return tr.readyState === "live";
-              });
-            if (!live) restartCamera("resume");
-            else video.play().catch(function () {});
-          }, 300);
-        });
-        window.addEventListener("pageshow", function (e) {
-          if (e.persisted) restartCamera("pageshow");
+          if (!document.hidden) state.steadySince = 0;
         });
 
         if ("serviceWorker" in navigator && location.protocol !== "file:") {
