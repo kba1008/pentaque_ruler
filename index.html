@@ -2401,11 +2401,15 @@
             document.head.appendChild(s);
             setTimeout(function () {
               resolve(!!(window.cv && window.cv.Mat));
-            }, 25000);
+            }, 8000);
           });
         }
 
         function boot() {
+          // Jangan biar skrin "Memuatkan AI..." menutup semua butang selama-lamanya.
+          setTimeout(function () {
+            $("loader").classList.add("hide");
+          }, 8000);
           requestAnimationFrame(loop);
           startCamera().catch(function () {});
           loadOpenCV().then(function (ok) {
