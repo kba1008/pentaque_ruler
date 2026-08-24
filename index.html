@@ -1271,18 +1271,18 @@ function preprocessViews(cv, src) {
 
               // Pandangan utama lebih sensitif; pandangan sokongan lebih ketat
               // supaya tidak membanjiri dengan calon palsu.
-              var thresholds = vi === 0 ? [20] : [24];
+              var thresholds = vi === 0 ? [38] : [44];
               thresholds.forEach(function (voteThreshold) {
                 var circles = new cv.Mat();
                 mats.push(circles);
                 try {
                   cv.HoughCircles(
                     view, circles, cv.HOUGH_GRADIENT, 1.15,
-                    Math.max(10, Math.round(minR * 0.9)),
+                    Math.max(14, Math.round(minR * 1.6)),
                     90, voteThreshold, Math.round(minR), Math.round(maxR)
                   );
                 } catch (e) { return; }
-                var lim = Math.min(circles.cols, 40);
+                var lim = Math.min(circles.cols, 16);
                 for (var i = 0; i < lim; i++) {
                   raw.push({
                     sx: circles.data32F[i * 3],
@@ -1350,13 +1350,21 @@ function preprocessViews(cv, src) {
               var s = support(c.sx, c.sy, rr);
               if (s > bestS) { bestS = s; bestR = rr; }
             }
-            if (bestS < 0.30) return;
+            if (bestS < 0.58) return;
             var item = { x: c.sx / sc, y: c.sy / sc, r: bestR / sc, s: bestS };
             var sizeErr = Math.abs(item.r - expectedR) / Math.max(1, expectedR);
             item.score = item.s * 2.4 - sizeErr * 0.38;
             cands.push(item);
           });
           cands.sort(function (a, b) { return b.score - a.score; });
+
+          // Saiz boule sepatutnya konsisten: buang calon yang terlalu jauh
+          // daripada saiz median (biasanya artifak Hough / bayang).
+          if (cands.length > 2) {
+            var rs = cands.map(function (c) { return c.r; }).sort(function (a, b) { return a - b; });
+            var medR = rs[Math.floor(rs.length / 2)];
+            cands = cands.filter(function (c) { return Math.abs(c.r - medR) <= medR * 0.28; });
+          }
 
           var out = [];
           cands.forEach(function (c) {
@@ -1368,11 +1376,20 @@ function preprocessViews(cv, src) {
             for (var i = 0; i < out.length; i++) {
               var kept = out[i];
               var gap = Math.hypot(c.x - kept.x, c.y - kept.y);
-              if (gap < Math.min(c.r, kept.r) * 0.72) return;
+              // Dua boule fizikal tidak boleh bertindih: pusat mesti sekurang-
+              // kurangnya ~85% jumlah jejari. Ini membuang bulatan hantu.
+              if (gap < (c.r + kept.r) * 0.85) return;
             }
             c.d = Math.max(0, fromJack - c.r - jackPx.r);
             out.push(c);
           });
+          // Simpan hanya calon yang kukuh berbanding calon terbaik, dan hadkan
+          // bilangan maksimum supaya tiada "fake ball" membanjiri paparan.
+          if (out.length) {
+            var bestScore = out[0].score;
+            out = out.filter(function (c) { return c.score >= bestScore * 0.72; });
+          }
+          out = out.slice(0, 12);
           out.sort(function (a, b) { return a.d - b.d; });
           return out;
         }
