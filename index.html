@@ -1109,11 +1109,11 @@
             cv.cvtColor(src, hsv, cv.COLOR_RGBA2RGB);
             cv.cvtColor(hsv, hsv, cv.COLOR_RGB2HSV);
             // Jack (cochonnet) is typically bright saturated: yellow/orange/red-ish.
-            lo = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [5, 90, 90, 0]);
-            hi = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [40, 255, 255, 255]);
+            lo = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [2, 65, 65, 0]);
+            hi = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [45, 255, 255, 255]);
             mask = new cv.Mat();
             cv.inRange(hsv, lo, hi, mask);
-            var k = cv.Mat.ones(5, 5, cv.CV_8U);
+            var k = cv.Mat.ones(3, 3, cv.CV_8U);
             cv.morphologyEx(mask, mask, cv.MORPH_OPEN, k);
             cv.morphologyEx(mask, mask, cv.MORPH_CLOSE, k);
             k.delete();
@@ -1126,15 +1126,15 @@
             // PANGKAH MERAH: jack MESTI berada di bawah pangkah di tengah kamera.
             // Calon di luar zon tengah diabaikan supaya boule atau objek lain
             // tidak tersalah kesan sebagai jack.
-            var ROI = 0.17; // jejari zon tengah (nisbah terhadap bingkai)
+            var ROI = 0.24; // zon tengah lebih luas untuk kamera yang sedikit bergerak
             for (var i = 0; i < contours.size(); i++) {
               var c = contours.get(i);
               var area = cv.contourArea(c);
               var ratio = area / total;
-              if (ratio >= 0.0015 && ratio <= 0.08) {
+              if (ratio >= 0.00045 && ratio <= 0.08) {
                 var per = cv.arcLength(c, true);
                 var circ = per > 0 ? (4 * Math.PI * area) / (per * per) : 0;
-                if (circ > 0.6) {
+                if (circ > 0.42) {
                   var r = cv.boundingRect(c);
                   var cand = {
                     x: (r.x + r.width / 2) / W,
@@ -1165,14 +1165,14 @@
           }
         }
 
-        /* ---------------- boule mapping (Hough + edge verification) ---------------- */
+        /* ---------------- boule mapping (multi-pass Hough + edge verification) ---------------- */
         function detectBoules(canvasEl, jackPx) {
-          // Satu bola = satu tag sahaja.
-          // Strategi: Hough longgar untuk calon -> pengesahan tepi (gradient support)
-          // -> NMS ketat supaya relang bertindih pada bola yang sama digabung.
+          // Pengesanan berbilang tahap: ambang pertama tepat, ambang kedua memulihkan
+          // boule gelap, berkilat, kecil atau separa terlindung. Deduplikasi dibuat
+          // berdasarkan pusat (bukan sentuhan lilitan), jadi boule rapat tidak digabung.
           if (!state.cvReady || !window.cv || !jackPx || jackPx.r <= 0) return [];
           var cv = window.cv;
-          var SW = 720;
+          var SW = Math.min(960, Math.max(720, canvasEl.width));
           var sc = SW / canvasEl.width;
           var SH = Math.max(1, Math.round(canvasEl.height * sc));
           var tmp = document.createElement("canvas");
@@ -1180,134 +1180,115 @@
           tmp.height = SH;
           tmp.getContext("2d").drawImage(canvasEl, 0, 0, SW, SH);
 
-          // Boule 70.5–80 mm, jack ~30 mm => nisbah jejari ~2.35–2.67 (beri toleransi).
+          // Nisbah rasmi sekitar 2.5, tetapi perspektif dan anggaran jack boleh berubah.
           var expectedR = jackPx.r * 2.5;
-          var minR = Math.max(8, expectedR * 0.75 * sc);
-          var maxR = Math.max(minR + 4, expectedR * 1.3 * sc);
-
-          var src = null, gray = null, circles = null, gx = null, gy = null, mag = null;
-          var raw = [];
+          var minR = Math.max(6, expectedR * 0.52 * sc);
+          var maxR = Math.max(minR + 6, expectedR * 1.58 * sc);
+          var src = null, gray = null, smooth = null, gx = null, gy = null, mag = null;
+          var raw = [], mats = [];
           var magData = null, magW = 0, magH = 0, magThr = 0;
 
           try {
             src = cv.imread(tmp);
             gray = new cv.Mat();
+            smooth = new cv.Mat();
             cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
-            cv.GaussianBlur(gray, gray, new cv.Size(7, 7), 1.6, 1.6, cv.BORDER_DEFAULT);
+            cv.GaussianBlur(gray, smooth, new cv.Size(5, 5), 1.25, 1.25, cv.BORDER_DEFAULT);
 
-            // --- peta tepi untuk pengesahan bulatan ---
             gx = new cv.Mat(); gy = new cv.Mat(); mag = new cv.Mat();
-            cv.Sobel(gray, gx, cv.CV_32F, 1, 0, 3);
-            cv.Sobel(gray, gy, cv.CV_32F, 0, 1, 3);
+            cv.Sobel(smooth, gx, cv.CV_32F, 1, 0, 3);
+            cv.Sobel(smooth, gy, cv.CV_32F, 0, 1, 3);
             cv.magnitude(gx, gy, mag);
             magW = mag.cols; magH = mag.rows;
             magData = new Float32Array(mag.data32F);
-            var sum = 0;
-            for (var p = 0; p < magData.length; p += 7) sum += magData[p];
-            var mean = sum / Math.ceil(magData.length / 7);
-            magThr = Math.max(28, mean * 1.9);
+            var samples = [];
+            for (var p = 0; p < magData.length; p += 17) samples.push(magData[p]);
+            samples.sort(function(a, b) { return a - b; });
+            var q65 = samples.length ? samples[Math.floor(samples.length * 0.65)] : 20;
+            magThr = Math.max(18, q65 * 1.2);
 
-            circles = new cv.Mat();
-            cv.HoughCircles(
-              gray,
-              circles,
-              cv.HOUGH_GRADIENT,
-              1,
-              Math.max(14, Math.round(minR * 1.25)),
-              120,
-              30,
-              Math.round(minR),
-              Math.round(maxR)
-            );
-
-            for (var i = 0; i < circles.cols; i++) {
-              raw.push({
-                sx: circles.data32F[i * 3],
-                sy: circles.data32F[i * 3 + 1],
-                sr: circles.data32F[i * 3 + 2]
-              });
-            }
+            // Dua tahap: tepat dahulu, kemudian sensitif untuk bola yang kurang jelas.
+            [24, 17].forEach(function (voteThreshold) {
+              var circles = new cv.Mat();
+              mats.push(circles);
+              cv.HoughCircles(
+                smooth, circles, cv.HOUGH_GRADIENT, 1.15,
+                Math.max(10, Math.round(minR * 0.9)),
+                90, voteThreshold, Math.round(minR), Math.round(maxR)
+              );
+              for (var i = 0; i < circles.cols; i++) {
+                raw.push({
+                  sx: circles.data32F[i * 3],
+                  sy: circles.data32F[i * 3 + 1],
+                  sr: circles.data32F[i * 3 + 2]
+                });
+              }
+            });
           } catch (e) {
           } finally {
-            [src, gray, circles, gx, gy, mag].forEach(function (m) {
+            [src, gray, smooth, gx, gy, mag].concat(mats).forEach(function (m) {
               if (m && m.delete) { try { m.delete(); } catch (e) {} }
             });
           }
-
           if (!raw.length || !magData) return [];
 
-          // sokongan tepi pada lilitan (0..1) untuk jejari tertentu
           function support(x, y, r) {
             if (r <= 2) return 0;
             var N = 72, hit = 0, used = 0;
             for (var i = 0; i < N; i++) {
               var a = (i / N) * Math.PI * 2;
-              var px = Math.round(x + Math.cos(a) * r);
-              var py = Math.round(y + Math.sin(a) * r);
+              var ca = Math.cos(a), sa = Math.sin(a);
+              var px = Math.round(x + ca * r), py = Math.round(y + sa * r);
               if (px < 1 || py < 1 || px >= magW - 1 || py >= magH - 1) continue;
               used++;
               var best = 0;
-              for (var d = -2; d <= 2; d++) {
-                var qx = Math.round(x + Math.cos(a) * (r + d));
-                var qy = Math.round(y + Math.sin(a) * (r + d));
+              for (var d = -3; d <= 3; d++) {
+                var qx = Math.round(x + ca * (r + d));
+                var qy = Math.round(y + sa * (r + d));
                 if (qx < 0 || qy < 0 || qx >= magW || qy >= magH) continue;
-                var v = magData[qy * magW + qx];
-                if (v > best) best = v;
+                best = Math.max(best, magData[qy * magW + qx]);
               }
               if (best >= magThr) hit++;
             }
-            return used < N * 0.6 ? 0 : hit / used;
+            return used < N * 0.45 ? 0 : hit / used;
           }
 
-          // halusi jejari: pilih jejari dengan sokongan tepi terbaik (ikut saiz sebenar bola)
           var cands = [];
           raw.forEach(function (c) {
             var bestR = c.sr, bestS = support(c.sx, c.sy, c.sr);
-            for (var k = -6; k <= 6; k++) {
-              var rr = c.sr + k * (c.sr * 0.02);
-              if (rr < minR * 0.85 || rr > maxR * 1.15) continue;
+            for (var k = -5; k <= 5; k++) {
+              var rr = c.sr * (1 + k * 0.025);
+              if (rr < minR * 0.9 || rr > maxR * 1.1) continue;
               var s = support(c.sx, c.sy, rr);
-              if (s > bestS + 0.01) { bestS = s; bestR = rr; }
+              if (s > bestS) { bestS = s; bestR = rr; }
             }
-            if (bestS < 0.5) return; // bukan bola: corak tanah / bayang / pantulan
-            cands.push({
-              x: c.sx / sc,
-              y: c.sy / sc,
-              r: bestR / sc,
-              s: bestS
-            });
-          });
-
-          // Skor: sokongan tepi + kesesuaian saiz dengan jack
-          cands.forEach(function (c) {
-            var sizeErr = Math.abs(c.r - expectedR) / expectedR;
-            c.score = c.s * 2 - sizeErr;
+            // Ambang sederhana: Hough sendiri sudah memberi bukti bentuk bulat.
+            if (bestS < 0.30) return;
+            var item = { x: c.sx / sc, y: c.sy / sc, r: bestR / sc, s: bestS };
+            var sizeErr = Math.abs(item.r - expectedR) / Math.max(1, expectedR);
+            item.score = item.s * 2.4 - sizeErr * 0.38;
+            cands.push(item);
           });
           cands.sort(function (a, b) { return b.score - a.score; });
 
           var out = [];
           cands.forEach(function (c) {
             var fromJack = Math.hypot(c.x - jackPx.x, c.y - jackPx.y);
-            // Tolak jack sendiri dan relang yang menyelubungi jack
-            if (fromJack < jackPx.r + c.r * 0.55) return;
-            // Tolak bulatan terpotong di tepi bingkai
-            if (c.x - c.r < 1 || c.y - c.r < 1 ||
-                c.x + c.r > canvasEl.width - 1 || c.y + c.r > canvasEl.height - 1) return;
-
+            if (fromJack < jackPx.r + c.r * 0.48) return;
+            // Benarkan bola terpotong sedikit di tepi gambar.
+            if (c.x < -c.r * 0.15 || c.y < -c.r * 0.15 ||
+                c.x > canvasEl.width + c.r * 0.15 || c.y > canvasEl.height + c.r * 0.15) return;
             for (var i = 0; i < out.length; i++) {
               var kept = out[i];
               var gap = Math.hypot(c.x - kept.x, c.y - kept.y);
-              // SATU BOLA SATU TAG: dua bola sebenar bersentuhan => gap ~ r1+r2.
-              // Apa-apa yang lebih rapat daripada 0.8*(r1+r2) dianggap bola yang sama.
-              if (gap < (c.r + kept.r) * 0.8) return;
+              // Calon pusat yang sangat dekat sahaja dianggap bola sama.
+              if (gap < Math.min(c.r, kept.r) * 0.72) return;
             }
-
             c.d = Math.max(0, fromJack - c.r - jackPx.r);
             out.push(c);
           });
-
           out.sort(function (a, b) { return a.d - b.d; });
-          return out.slice(0, 8);
+          return out.slice(0, 12);
         }
 
         /* ---------------- arrows ---------------- */
@@ -1344,7 +1325,7 @@
                 d.r = state.jack.r * 0.5 + d.r * 0.5;
               }
               state.jack = d;
-            } else if (state.jack && ts - (state.jack.ts || 0) > 1200) {
+            } else if (state.jack && ts - (state.jack.ts || 0) > 3000) {
               state.jack = null;
             }
           }
