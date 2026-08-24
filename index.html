@@ -9,7 +9,7 @@
     <title>Petanque Referee Pro — Auto Jack Detection &amp; Measure</title>
     <meta
       name="description"
-      content="Professional Petanque referee PWA: automatic jack detection, camera guidance, gyroscope leveling and auto-snap boule measurement."
+      content="Professional Petanque referee PWA: automatic jack detection, all-boule tagging, camera guidance, gyroscope leveling, pinch-zoom review and auto-snap measurement."
     />
     <meta name="theme-color" content="#0056b3" />
     <meta name="mobile-web-app-capable" content="yes" />
@@ -118,6 +118,13 @@
       #grid.off {
         display: none;
       }
+      /* hide live guides while reviewing a frozen result */
+      #stage.result #grid,
+      #stage.result .arrow,
+      #stage.result #leveler,
+      #stage.result #countRing {
+        display: none !important;
+      }
 
       /* ===================== ARROWS ===================== */
       .arrow {
@@ -183,34 +190,6 @@
         pointer-events: none;
       }
 
-      /* ===================== CROSSHAIR (PANGKAH MERAH) ===================== */
-      #crosshair {
-        position: absolute;
-        z-index: 8;
-        top: 50%;
-        left: 50%;
-        width: 76px;
-        height: 76px;
-        margin: -38px 0 0 -38px;
-        pointer-events: none;
-        filter: drop-shadow(0 0 6px rgba(255, 45, 45, 0.85));
-        animation: xhairPulse 1.6s infinite ease-in-out;
-      }
-      #crosshair.off {
-        display: none;
-      }
-      @keyframes xhairPulse {
-        0%,
-        100% {
-          opacity: 0.95;
-          transform: scale(1);
-        }
-        50% {
-          opacity: 0.7;
-          transform: scale(0.97);
-        }
-      }
-
       /* ===================== LEVELER ===================== */
       #leveler {
         position: absolute;
@@ -231,7 +210,9 @@
           border-color 0.2s ease,
           box-shadow 0.2s ease;
       }
-
+      #leveler.off {
+        display: none;
+      }
       #leveler::before,
       #leveler::after {
         content: "";
@@ -473,9 +454,97 @@
         padding: 14px 0;
         font-size: 18px;
       }
+      .btn.sm {
+        padding: 10px 12px;
+        font-size: 12px;
+        border-radius: 12px;
+      }
       .btn[disabled] {
         opacity: 0.55;
         pointer-events: none;
+      }
+
+      /* ===================== RESULT SHEET ===================== */
+      #sheet {
+        position: absolute;
+        z-index: 11;
+        left: 12px;
+        right: 12px;
+        bottom: calc(92px + var(--safe-b));
+        max-height: 46vh;
+        padding: 12px 12px 10px;
+        display: none;
+        flex-direction: column;
+        gap: 8px;
+      }
+      #sheet.on {
+        display: flex;
+      }
+      #sheet .head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      #sheet .title {
+        font-weight: 700;
+        font-size: 14px;
+        color: var(--blue);
+        flex: 1;
+      }
+      #verdict {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--ink);
+        background: rgba(34, 224, 122, 0.18);
+        border: 1px solid rgba(34, 224, 122, 0.5);
+        border-radius: 10px;
+        padding: 8px 10px;
+        line-height: 1.4;
+      }
+      #rankList {
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .rank {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: rgba(255, 255, 255, 0.7);
+        border-radius: 12px;
+        padding: 8px 10px;
+        font-size: 13px;
+        font-weight: 600;
+      }
+      .rank .no {
+        width: 26px;
+        height: 26px;
+        flex: 0 0 auto;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        font-size: 12px;
+        font-weight: 700;
+        color: #04364f;
+        background: var(--grad-primary);
+      }
+      .rank.first .no {
+        background: linear-gradient(135deg, #22e07a 0%, #06d6a0 100%);
+      }
+      .rank .d {
+        margin-left: auto;
+        font-variant-numeric: tabular-nums;
+      }
+      .rank .dia {
+        font-size: 11px;
+        color: var(--gray-500);
+        font-weight: 500;
+      }
+      .sheet-actions {
+        display: flex;
+        gap: 8px;
       }
 
       /* ===================== OVERLAY PANELS ===================== */
@@ -499,6 +568,11 @@
         display: flex;
         transform: translateY(0);
         opacity: 1;
+      }
+      .panel .scroll {
+        flex: 1;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
       }
       .panel h2 {
         margin: 4px 0 4px;
@@ -532,6 +606,33 @@
         font-size: 12px;
         color: var(--gray-500);
         margin-top: 2px;
+      }
+      .seg {
+        display: flex;
+        gap: 6px;
+        margin-top: 10px;
+      }
+      .seg button {
+        flex: 1;
+        border: 1px solid #dfe5ea;
+        background: #f4f7f9;
+        color: var(--gray-500);
+        font-family: inherit;
+        font-weight: 600;
+        font-size: 12px;
+        padding: 10px 6px;
+        border-radius: 10px;
+        cursor: pointer;
+      }
+      .seg button.on {
+        background: var(--grad-primary);
+        color: #04364f;
+        border-color: transparent;
+      }
+      input[type="range"] {
+        width: 100%;
+        margin-top: 12px;
+        accent-color: #0e97c9;
       }
 
       /* iOS toggle */
@@ -576,9 +677,6 @@
       }
 
       #histList {
-        flex: 1;
-        overflow-y: auto;
-        -webkit-overflow-scrolling: touch;
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
         gap: 12px;
@@ -589,6 +687,7 @@
         border-radius: 14px;
         overflow: hidden;
         box-shadow: 0 6px 16px rgba(10, 25, 60, 0.12);
+        cursor: pointer;
       }
       .hist-item img {
         width: 100%;
@@ -603,16 +702,88 @@
         color: var(--gray-500);
         font-weight: 500;
       }
+      .hist-item .meta b {
+        display: block;
+        color: var(--ink);
+        font-size: 12px;
+      }
       .empty {
         text-align: center;
         color: var(--gray-500);
         font-size: 14px;
         padding: 40px 10px;
+        grid-column: 1 / -1;
       }
       .panel-actions {
         display: flex;
         gap: 10px;
         padding-top: 6px;
+      }
+
+      /* ===================== ZOOM VIEWER ===================== */
+      #zv {
+        position: fixed;
+        inset: 0;
+        z-index: 45;
+        background: #05080f;
+        display: none;
+        flex-direction: column;
+      }
+      #zv.open {
+        display: flex;
+      }
+      #zvStage {
+        position: relative;
+        flex: 1;
+        overflow: hidden;
+        touch-action: none;
+        cursor: grab;
+      }
+      #zvImg {
+        position: absolute;
+        top: 0;
+        left: 0;
+        transform-origin: 0 0;
+        will-change: transform;
+        user-select: none;
+        -webkit-user-drag: none;
+        pointer-events: none;
+      }
+      #zvBar {
+        position: absolute;
+        z-index: 2;
+        left: 12px;
+        right: 12px;
+        bottom: calc(14px + var(--safe-b));
+        padding: 10px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      #zvPct {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--blue);
+        min-width: 52px;
+        text-align: center;
+        font-variant-numeric: tabular-nums;
+      }
+      #zvHint {
+        position: absolute;
+        z-index: 2;
+        top: calc(14px + var(--safe-t));
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(23, 34, 59, 0.8);
+        color: #fff;
+        font-size: 12px;
+        font-weight: 500;
+        padding: 8px 14px;
+        border-radius: 999px;
+        transition: opacity 0.4s ease;
+      }
+      #zvHint.fade {
+        opacity: 0;
       }
 
       /* ===================== LOADER ===================== */
@@ -699,12 +870,6 @@
 
       <div id="jackMark"></div>
 
-      <svg id="crosshair" viewBox="0 0 72 72" aria-hidden="true">
-        <circle cx="36" cy="36" r="27" fill="none" stroke="#ff2d2d" stroke-width="2.5" stroke-dasharray="7 6" />
-        <path d="M36 2v16M36 54v16M2 36h16M54 36h16" stroke="#ff2d2d" stroke-width="3.5" stroke-linecap="round" fill="none" />
-        <circle cx="36" cy="36" r="3.2" fill="#ff2d2d" />
-      </svg>
-
       <div class="arrow" id="arrUp">▲</div>
       <div class="arrow" id="arrDown">▼</div>
       <div class="arrow" id="arrLeft">◀</div>
@@ -718,7 +883,7 @@
       </div>
 
       <div id="topBar" class="glass">
-        <div id="brand">Petanque Referee Pro<span>Auto Jack Measure</span></div>
+        <div id="brand">Petanque Referee Pro<span>Auto Measure · Intl Mode</span></div>
         <div class="spacer"></div>
         <div id="angles">β 0.0°<br />γ 0.0°</div>
       </div>
@@ -726,6 +891,20 @@
       <div id="statusBar" class="glass">
         <div id="statusDot" class="search"></div>
         <div id="statusText">Memuatkan AI...</div>
+      </div>
+
+      <!-- result sheet -->
+      <div id="sheet" class="glass">
+        <div class="head">
+          <div class="title">Keputusan Ukuran</div>
+          <button class="btn sm" id="btnZoom" style="flex: 0 0 auto">🔍 Zoom</button>
+        </div>
+        <div id="verdict"></div>
+        <div id="rankList"></div>
+        <div class="sheet-actions">
+          <button class="btn sm" id="btnRescan">↻ Imbas Lagi (lebih sensitif)</button>
+          <button class="btn sm" id="btnShare" style="flex: 0 0 auto">⤴</button>
+        </div>
       </div>
 
       <div id="dock" class="glass">
@@ -738,36 +917,73 @@
     <!-- ============ SETTINGS ============ -->
     <section class="panel" id="panelSettings">
       <h2>Tetapan</h2>
-      <p class="sub">Konfigurasi bantuan visual dan pengesanan automatik.</p>
+      <p class="sub">Konfigurasi bantuan visual, pengesanan dan kalibrasi ukuran.</p>
 
-      <div class="card row">
-        <div>
-          <div class="label">Grid Sepusat</div>
-          <div class="hint">Bulatan putus-putus untuk anggaran jarak.</div>
+      <div class="scroll">
+        <div class="card row">
+          <div>
+            <div class="label">Grid Sepusat</div>
+            <div class="hint">Bulatan putus-putus untuk anggaran jarak.</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="tglGrid" checked />
+            <span class="track"></span><span class="knob"></span>
+          </label>
         </div>
-        <label class="switch">
-          <input type="checkbox" id="tglGrid" checked />
-          <span class="track"></span><span class="knob"></span>
-        </label>
-      </div>
 
-      <div class="card row">
-        <div>
-          <div class="label">Auto-Snap</div>
-          <div class="hint">Tangkap automatik bila Jack di tengah &amp; rata.</div>
+        <div class="card row">
+          <div>
+            <div class="label">Auto-Snap</div>
+            <div class="hint">Tangkap automatik bila Jack di tengah &amp; rata.</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="tglAuto" checked />
+            <span class="track"></span><span class="knob"></span>
+          </label>
         </div>
-        <label class="switch">
-          <input type="checkbox" id="tglAuto" checked />
-          <span class="track"></span><span class="knob"></span>
-        </label>
-      </div>
 
-      <div class="card row">
-        <div>
-          <div class="label">Sensor Gyroscope</div>
-          <div class="hint" id="gyroHint">Ketuk untuk benarkan (iOS).</div>
+        <div class="card row">
+          <div>
+            <div class="label">Timbang Air</div>
+            <div class="hint">Papar gelembung paras pada skrin kamera.</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="tglLevel" checked />
+            <span class="track"></span><span class="knob"></span>
+          </label>
         </div>
-        <button class="btn" id="btnGyro" style="flex: 0 0 auto; width: 120px">Benarkan</button>
+
+        <div class="card">
+          <div class="row">
+            <div>
+              <div class="label">Sensitiviti Pengesanan</div>
+              <div class="hint" id="sensHint">Tinggi — kesan bola kelabu &amp; jauh.</div>
+            </div>
+          </div>
+          <input type="range" id="rngSens" min="0" max="4" step="1" value="3" />
+        </div>
+
+        <div class="card">
+          <div class="row">
+            <div>
+              <div class="label">Kalibrasi Skala</div>
+              <div class="hint">Rujukan untuk tukar piksel kepada cm.</div>
+            </div>
+          </div>
+          <div class="seg" id="segCal">
+            <button data-cal="auto" class="on">Auto</button>
+            <button data-cal="jack">Jack 30mm</button>
+            <button data-cal="boule">Boule 74mm</button>
+          </div>
+        </div>
+
+        <div class="card row">
+          <div>
+            <div class="label">Sensor Gyroscope</div>
+            <div class="hint" id="gyroHint">Ketuk untuk benarkan (iOS).</div>
+          </div>
+          <button class="btn" id="btnGyro" style="flex: 0 0 auto; width: 120px">Benarkan</button>
+        </div>
       </div>
 
       <div class="panel-actions">
@@ -778,13 +994,28 @@
     <!-- ============ HISTORY ============ -->
     <section class="panel" id="panelHistory">
       <h2>Sejarah Rekod</h2>
-      <p class="sub">Gambar ukuran tersimpan dalam peranti ini.</p>
-      <div id="histList"></div>
+      <p class="sub">Ketuk mana-mana gambar untuk zoom besar (cubit dua jari).</p>
+      <div class="scroll"><div id="histList"></div></div>
       <div class="panel-actions">
         <button class="btn primary" data-close="panelHistory">Kembali ke Kamera</button>
         <button class="btn danger" id="btnClear">Padam Semua</button>
       </div>
     </section>
+
+    <!-- ============ ZOOM VIEWER ============ -->
+    <div id="zv">
+      <div id="zvStage">
+        <img id="zvImg" alt="Pandangan zoom hasil ukuran" />
+      </div>
+      <div id="zvHint">Cubit dua jari untuk zoom · seret untuk gerak · ketuk dua kali reset</div>
+      <div id="zvBar" class="glass">
+        <button class="btn sm icon" id="zvOut" style="width: 46px">−</button>
+        <div id="zvPct">100%</div>
+        <button class="btn sm icon" id="zvIn" style="width: 46px">+</button>
+        <button class="btn sm" id="zvFit">Muat</button>
+        <button class="btn sm primary" id="zvClose">Tutup</button>
+      </div>
+    </div>
 
     <!-- ============ LOADER ============ -->
     <div id="loader">
@@ -799,7 +1030,7 @@
 
     <script>
       /* =========================================================
-         Petanque Referee Pro — vanilla JS
+         Petanque Referee Pro — vanilla JS (international build)
          ========================================================= */
       (function () {
         "use strict";
@@ -826,7 +1057,15 @@
         };
         var btnSnap = $("btnSnap");
 
-        var LS = { grid: "prp.grid", auto: "prp.auto", hist: "prp.history" };
+        var LS = {
+          grid: "prp.grid",
+          auto: "prp.auto",
+          level: "prp.level",
+          sens: "prp.sens",
+          cal: "prp.cal",
+          hist: "prp.history",
+        };
+
         var state = {
           cvReady: false,
           camReady: false,
@@ -834,10 +1073,13 @@
           beta: 0,
           gamma: 0,
           gyroOK: false,
-          jack: null, // {x,y,r} in video pixels
+          jack: null,
           steadySince: 0,
           auto: true,
           busy: false,
+          sens: 3,
+          cal: "auto",
+          last: null, // {img, boules, jack, mmPerPx}
         };
 
         /* ---------------- helpers ---------------- */
@@ -868,17 +1110,55 @@
             localStorage.setItem(key, val ? "1" : "0");
           } catch (e) {}
         }
+        function getStr(key, dflt) {
+          try {
+            var v = localStorage.getItem(key);
+            return v === null ? dflt : v;
+          } catch (e) {
+            return dflt;
+          }
+        }
+        function setStr(key, v) {
+          try {
+            localStorage.setItem(key, v);
+          } catch (e) {}
+        }
+        function clamp(v, a, b) {
+          return v < a ? a : v > b ? b : v;
+        }
 
         /* ---------------- settings ---------------- */
         var tglGrid = $("tglGrid"),
-          tglAuto = $("tglAuto");
+          tglAuto = $("tglAuto"),
+          tglLevel = $("tglLevel"),
+          rngSens = $("rngSens");
+
+        var SENS_TEXT = [
+          "Rendah — hanya bola jelas.",
+          "Sederhana rendah.",
+          "Seimbang.",
+          "Tinggi — kesan bola kelabu & jauh.",
+          "Maksimum — tag semua yang mungkin bola.",
+        ];
+
         function applyGrid() {
           grid.classList.toggle("off", !tglGrid.checked);
         }
+        function applyLevelVis() {
+          leveler.classList.toggle("off", !tglLevel.checked);
+        }
         tglGrid.checked = getBool(LS.grid, true);
         tglAuto.checked = getBool(LS.auto, true);
+        tglLevel.checked = getBool(LS.level, true);
         state.auto = tglAuto.checked;
+        state.sens = parseInt(getStr(LS.sens, "3"), 10);
+        if (isNaN(state.sens)) state.sens = 3;
+        rngSens.value = String(state.sens);
+        $("sensHint").textContent = SENS_TEXT[state.sens];
+        state.cal = getStr(LS.cal, "auto");
         applyGrid();
+        applyLevelVis();
+
         tglGrid.addEventListener("change", function () {
           setBool(LS.grid, tglGrid.checked);
           applyGrid();
@@ -886,6 +1166,26 @@
         tglAuto.addEventListener("change", function () {
           state.auto = tglAuto.checked;
           setBool(LS.auto, state.auto);
+        });
+        tglLevel.addEventListener("change", function () {
+          setBool(LS.level, tglLevel.checked);
+          applyLevelVis();
+        });
+        rngSens.addEventListener("input", function () {
+          state.sens = parseInt(rngSens.value, 10) || 0;
+          $("sensHint").textContent = SENS_TEXT[state.sens];
+          setStr(LS.sens, String(state.sens));
+        });
+        Array.prototype.forEach.call($("segCal").children, function (b) {
+          if (b.getAttribute("data-cal") === state.cal) b.classList.add("on");
+          else b.classList.remove("on");
+          b.addEventListener("click", function () {
+            state.cal = b.getAttribute("data-cal");
+            setStr(LS.cal, state.cal);
+            Array.prototype.forEach.call($("segCal").children, function (o) {
+              o.classList.toggle("on", o === b);
+            });
+          });
         });
 
         /* ---------------- panels ---------------- */
@@ -924,11 +1224,11 @@
             return false;
           }
         }
-        function saveShot(dataUrl) {
+        function saveShot(dataUrl, info) {
           var list = readHistory();
-          list.unshift({ t: Date.now(), img: dataUrl });
+          list.unshift({ t: Date.now(), img: dataUrl, n: info.n, best: info.best });
           while (list.length > 0 && !writeHistory(list)) {
-            list.pop(); // quota: drop oldest until it fits
+            list.pop();
             if (list.length === 0) {
               toast("Storan penuh — rekod tidak disimpan.");
               return;
@@ -964,7 +1264,6 @@
             var e = document.createElement("div");
             e.className = "empty";
             e.textContent = "Tiada rekod lagi. Snap ukuran pertama anda!";
-            e.style.gridColumn = "1 / -1";
             box.appendChild(e);
             return;
           }
@@ -977,9 +1276,16 @@
             img.loading = "lazy";
             var m = document.createElement("div");
             m.className = "meta";
-            m.textContent = fmt(it.t);
+            var b = document.createElement("b");
+            b.textContent =
+              (it.n ? it.n + " boule" : "Rekod") + (it.best ? " · #1 " + it.best : "");
+            m.appendChild(b);
+            m.appendChild(document.createTextNode(fmt(it.t)));
             card.appendChild(img);
             card.appendChild(m);
+            card.addEventListener("click", function () {
+              ZV.open(it.img);
+            });
             box.appendChild(card);
           });
         }
@@ -992,25 +1298,174 @@
           toast("Semua rekod dipadam.");
         });
 
+        /* ---------------- zoom viewer (pinch / wheel / pan) ---------------- */
+        var ZV = (function () {
+          var root = $("zv"),
+            stage = $("zvStage"),
+            img = $("zvImg"),
+            pct = $("zvPct"),
+            hint = $("zvHint");
+          var z = 1,
+            ox = 0,
+            oy = 0,
+            baseW = 0,
+            baseH = 0;
+          var MIN = 1,
+            MAX = 12;
+          var pointers = {},
+            prevDist = 0,
+            prevMid = null,
+            lastTap = 0;
+
+          function apply() {
+            var rect = stage.getBoundingClientRect();
+            var w = baseW * z,
+              h = baseH * z;
+            // keep image inside view when smaller, clamp when bigger
+            ox = w <= rect.width ? (rect.width - w) / 2 : clamp(ox, rect.width - w, 0);
+            oy = h <= rect.height ? (rect.height - h) / 2 : clamp(oy, rect.height - h, 0);
+            img.style.transform =
+              "translate(" + ox.toFixed(2) + "px," + oy.toFixed(2) + "px) scale(" + z + ")";
+            pct.textContent = Math.round(z * 100) + "%";
+          }
+          function fit() {
+            var rect = stage.getBoundingClientRect();
+            var nw = img.naturalWidth || 1,
+              nh = img.naturalHeight || 1;
+            var s = Math.min(rect.width / nw, rect.height / nh);
+            baseW = nw * s;
+            baseH = nh * s;
+            img.style.width = baseW + "px";
+            img.style.height = baseH + "px";
+            z = 1;
+            ox = (rect.width - baseW) / 2;
+            oy = (rect.height - baseH) / 2;
+            apply();
+          }
+          function zoomAt(px, py, k) {
+            var next = clamp(z * k, MIN, MAX);
+            var f = next / z;
+            ox = px - (px - ox) * f;
+            oy = py - (py - oy) * f;
+            z = next;
+            apply();
+          }
+          function rel(e) {
+            var r = stage.getBoundingClientRect();
+            return { x: e.clientX - r.left, y: e.clientY - r.top };
+          }
+
+          stage.addEventListener(
+            "wheel",
+            function (e) {
+              e.preventDefault();
+              var dy = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 100 : 1);
+              var p = rel(e);
+              zoomAt(p.x, p.y, Math.exp(-dy * 0.0018));
+            },
+            { passive: false },
+          );
+
+          stage.addEventListener("pointerdown", function (e) {
+            stage.setPointerCapture(e.pointerId);
+            pointers[e.pointerId] = rel(e);
+            var ids = Object.keys(pointers);
+            if (ids.length === 2) {
+              var a = pointers[ids[0]],
+                b = pointers[ids[1]];
+              prevDist = Math.hypot(a.x - b.x, a.y - b.y);
+              prevMid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+            } else {
+              var now = Date.now();
+              if (now - lastTap < 300) {
+                var p = rel(e);
+                if (z > 1.2) fit();
+                else zoomAt(p.x, p.y, 3);
+              }
+              lastTap = now;
+            }
+          });
+          stage.addEventListener("pointermove", function (e) {
+            if (!pointers[e.pointerId]) return;
+            var p = rel(e);
+            var ids = Object.keys(pointers);
+            if (ids.length >= 2) {
+              pointers[e.pointerId] = p;
+              var a = pointers[ids[0]],
+                b = pointers[ids[1]];
+              var dist = Math.hypot(a.x - b.x, a.y - b.y);
+              var mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+              if (prevDist > 0) zoomAt(mid.x, mid.y, dist / prevDist);
+              if (prevMid) {
+                ox += mid.x - prevMid.x;
+                oy += mid.y - prevMid.y;
+                apply();
+              }
+              prevDist = dist;
+              prevMid = mid;
+            } else {
+              var prev = pointers[e.pointerId];
+              ox += p.x - prev.x;
+              oy += p.y - prev.y;
+              pointers[e.pointerId] = p;
+              apply();
+            }
+          });
+          function up(e) {
+            delete pointers[e.pointerId];
+            prevDist = 0;
+            prevMid = null;
+          }
+          stage.addEventListener("pointerup", up);
+          stage.addEventListener("pointercancel", up);
+          stage.addEventListener("pointerleave", up);
+
+          $("zvIn").addEventListener("click", function () {
+            var r = stage.getBoundingClientRect();
+            zoomAt(r.width / 2, r.height / 2, 1.5);
+          });
+          $("zvOut").addEventListener("click", function () {
+            var r = stage.getBoundingClientRect();
+            zoomAt(r.width / 2, r.height / 2, 1 / 1.5);
+          });
+          $("zvFit").addEventListener("click", fit);
+          $("zvClose").addEventListener("click", function () {
+            root.classList.remove("open");
+          });
+          window.addEventListener("resize", function () {
+            if (root.classList.contains("open")) fit();
+          });
+
+          return {
+            open: function (src) {
+              root.classList.add("open");
+              hint.classList.remove("fade");
+              setTimeout(function () {
+                hint.classList.add("fade");
+              }, 2600);
+              if (img.src === src && img.complete) fit();
+              img.onload = fit;
+              img.src = src;
+            },
+          };
+        })();
+
         /* ---------------- gyroscope ---------------- */
         function onOrient(e) {
           if (e.beta === null && e.gamma === null) return;
           state.gyroOK = true;
-          state.beta = e.beta || 0;
-          state.gamma = e.gamma || 0;
-          // Flat-on-ground reference: beta ~ 0 (phone screen up) when pointing down we use raw beta.
-          var b = state.beta,
-            g = state.gamma;
+          var b = e.beta || 0,
+            g = e.gamma || 0;
           if (b > 90) b = 180 - b;
           if (b < -90) b = -180 - b;
           state.beta = b;
-          angles.innerHTML =
-            "β " + b.toFixed(1) + "°<br>γ " + g.toFixed(1) + "°";
-          var R = 75 - 17; // container radius - bubble radius
-          var max = 25; // degrees mapped to edge
-          var x = Math.max(-1, Math.min(1, g / max)) * R;
-          var y = Math.max(-1, Math.min(1, b / max)) * R;
-          var d = Math.sqrt(x * x + y * y);
+          state.gamma = g;
+          angles.innerHTML = "β " + b.toFixed(1) + "°<br>γ " + g.toFixed(1) + "°";
+          var R = 75 - 17;
+          var max = 25;
+          var x = clamp(g / max, -1, 1) * R;
+          var y = clamp(b / max, -1, 1) * R;
+          var d = Math.hypot(x, y);
           if (d > R) {
             x = (x / d) * R;
             y = (y / d) * R;
@@ -1084,7 +1539,7 @@
             });
         }
 
-        /* ---------------- OpenCV detection ---------------- */
+        /* ---------------- jack detection (live) ---------------- */
         var work = document.createElement("canvas");
         var wctx = work.getContext("2d", { willReadFrequently: true });
         var W = 320,
@@ -1108,12 +1563,11 @@
             hsv = new cv.Mat();
             cv.cvtColor(src, hsv, cv.COLOR_RGBA2RGB);
             cv.cvtColor(hsv, hsv, cv.COLOR_RGB2HSV);
-            // Jack (cochonnet) is typically bright saturated: yellow/orange/red-ish.
-            lo = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [2, 65, 65, 0]);
-            hi = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [45, 255, 255, 255]);
+            lo = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [5, 90, 90, 0]);
+            hi = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [40, 255, 255, 255]);
             mask = new cv.Mat();
             cv.inRange(hsv, lo, hi, mask);
-            var k = cv.Mat.ones(3, 3, cv.CV_8U);
+            var k = cv.Mat.ones(5, 5, cv.CV_8U);
             cv.morphologyEx(mask, mask, cv.MORPH_OPEN, k);
             cv.morphologyEx(mask, mask, cv.MORPH_CLOSE, k);
             k.delete();
@@ -1123,30 +1577,22 @@
             cv.findContours(mask, contours, hier, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
             var total = W * H,
               best = null;
-            // PANGKAH MERAH: jack MESTI berada di bawah pangkah di tengah kamera.
-            // Calon di luar zon tengah diabaikan supaya boule atau objek lain
-            // tidak tersalah kesan sebagai jack.
-            var ROI = 0.24; // zon tengah lebih luas untuk kamera yang sedikit bergerak
             for (var i = 0; i < contours.size(); i++) {
               var c = contours.get(i);
               var area = cv.contourArea(c);
               var ratio = area / total;
-              if (ratio >= 0.00045 && ratio <= 0.08) {
+              if (ratio >= 0.0012 && ratio <= 0.08) {
                 var per = cv.arcLength(c, true);
                 var circ = per > 0 ? (4 * Math.PI * area) / (per * per) : 0;
-                if (circ > 0.42) {
+                if (circ > 0.6) {
                   var r = cv.boundingRect(c);
                   var cand = {
                     x: (r.x + r.width / 2) / W,
                     y: (r.y + r.height / 2) / H,
                     r: Math.max(r.width, r.height) / 2 / W,
+                    score: circ,
                   };
-                  var distC = Math.hypot(cand.x - 0.5, cand.y - 0.5);
-                  if (distC <= ROI) {
-                    // Keutamaan: paling hampir ke pangkah, kemudian paling bulat.
-                    cand.score = (1 - distC / ROI) * 2 + circ;
-                    if (!best || cand.score > best.score) best = cand;
-                  }
+                  if (!best || cand.score > best.score) best = cand;
                 }
               }
               c.delete();
@@ -1165,236 +1611,289 @@
           }
         }
 
-        /* ---------------- boule mapping (multi-pass Hough + edge verification) ---------------- */
-function preprocessViews(cv, src) {
-          // ---- PENAPIS WARNA (colour separation) ----
-          // Masalah: warna tanah/latar kadangkala hampir sama dengan warna bola,
-          // jadi Hough pada imej kelabu biasa gagal. Kita bina beberapa "pandangan"
-          // warna yang berbeza supaya bola sentiasa menonjol pada sekurang-kurangnya
-          // satu daripadanya, kemudian gabungkan semua calon.
-          var views = [];
-          var rgb = new cv.Mat(), hsv = new cv.Mat();
-          var S = null, V = null, vEq = null, sEq = null, inv = null;
-          try {
-            cv.cvtColor(src, rgb, cv.COLOR_RGBA2RGB);
-            cv.cvtColor(rgb, hsv, cv.COLOR_RGB2HSV);
-            var ch = new cv.MatVector();
-            cv.split(hsv, ch);
-            S = ch.get(1).clone();
-            V = ch.get(2).clone();
-            ch.delete();
+        /* =========================================================
+           BOULE DETECTION — multi-method, colour blind
+           (Hough + Canny contours + adaptive threshold both polarity)
+           then sub-pixel radius refinement by radial edge scan so the
+           drawn circle matches the real diameter of every boule.
+           ========================================================= */
 
-            vEq = new cv.Mat();
-            sEq = new cv.Mat();
-            var clahe = null;
-            try {
-              clahe = new cv.CLAHE(2.6, new cv.Size(8, 8));
-              clahe.apply(V, vEq);
-              clahe.apply(S, sEq);
-            } catch (e) {
-              cv.equalizeHist(V, vEq);
-              cv.equalizeHist(S, sEq);
-            }
-            if (clahe && clahe.delete) { try { clahe.delete(); } catch (e) {} }
-
-            // Pandangan 1 — "metal": kecerahan dinaikkan, warna tepu (tanah, rumput,
-            // gravel berwarna) ditekan. Bola besi bertukar terang, latar jadi gelap.
-            inv = new cv.Mat();
-            cv.bitwise_not(sEq, inv);
-            var metal = new cv.Mat();
-            cv.addWeighted(vEq, 0.55, inv, 0.45, 0, metal);
-            cv.GaussianBlur(metal, metal, new cv.Size(5, 5), 1.2, 1.2, cv.BORDER_DEFAULT);
-            views.push(metal);
-
-            // Pandangan 2 — luminans CLAHE tulen (bola gelap / latar cerah).
-            var lum = new cv.Mat();
-            cv.GaussianBlur(vEq, lum, new cv.Size(5, 5), 1.2, 1.2, cv.BORDER_DEFAULT);
-            views.push(lum);
-
-            // Pandangan 3 — saluran ketepuan (bola berwarna atas tanah senada).
-            var sat = new cv.Mat();
-            cv.GaussianBlur(sEq, sat, new cv.Size(5, 5), 1.2, 1.2, cv.BORDER_DEFAULT);
-            views.push(sat);
-          } catch (e) {
-          } finally {
-            [rgb, hsv, S, V, vEq, sEq, inv].forEach(function (m) {
-              if (m && m.delete) { try { m.delete(); } catch (e) {} }
-            });
+        function luminanceOf(ctx2d, w, h) {
+          var d = ctx2d.getImageData(0, 0, w, h).data;
+          var lum = new Float32Array(w * h);
+          for (var i = 0, p = 0; i < lum.length; i++, p += 4) {
+            lum[i] = 0.299 * d[p] + 0.587 * d[p + 1] + 0.114 * d[p + 2];
           }
-          return views;
+          return lum;
+        }
+        function sampleLum(lum, w, h, x, y) {
+          var xi = x < 0 ? 0 : x > w - 1 ? w - 1 : x;
+          var yi = y < 0 ? 0 : y > h - 1 ? h - 1 : y;
+          return lum[(yi | 0) * w + (xi | 0)];
         }
 
-        function detectBoules(canvasEl, jackPx) {
-          // Pengesanan berbilang pandangan warna + berbilang ambang undi.
-          // Deduplikasi dibuat berdasarkan pusat, jadi boule rapat tidak digabung.
-          if (!state.cvReady || !window.cv || !jackPx || jackPx.r <= 0) return [];
+        // radial edge scan: returns refined {x,y,r,support}
+        function refineCircle(lum, w, h, c, minR, maxR) {
+          var cx = c.x,
+            cy = c.y,
+            cr = c.r;
+          var N = 72,
+            pts,
+            i,
+            iter;
+          for (iter = 0; iter < 2; iter++) {
+            pts = [];
+            var lo = Math.max(minR * 0.7, cr * 0.5),
+              hi = Math.min(maxR * 1.3, cr * 1.75);
+            for (i = 0; i < N; i++) {
+              var th = (i * 2 * Math.PI) / N;
+              var ca = Math.cos(th),
+                sa = Math.sin(th);
+              var bestG = 0,
+                bestR = 0;
+              for (var r = lo; r <= hi; r += 1) {
+                var a = sampleLum(lum, w, h, cx + ca * (r - 1.5), cy + sa * (r - 1.5));
+                var b = sampleLum(lum, w, h, cx + ca * (r + 1.5), cy + sa * (r + 1.5));
+                var g = Math.abs(a - b);
+                if (g > bestG) {
+                  bestG = g;
+                  bestR = r;
+                }
+              }
+              if (bestG > 9) pts.push({ r: bestR, x: cx + ca * bestR, y: cy + sa * bestR });
+            }
+            if (pts.length < 8) return null;
+            // robust radius = median, then reject outliers and recentre
+            var rs = pts
+              .map(function (p) {
+                return p.r;
+              })
+              .sort(function (a, b) {
+                return a - b;
+              });
+            var med = rs[rs.length >> 1];
+            var keep = pts.filter(function (p) {
+              return Math.abs(p.r - med) < med * 0.22;
+            });
+            if (keep.length < 8) return null;
+            var sx = 0,
+              sy = 0,
+              sr = 0;
+            keep.forEach(function (p) {
+              sx += p.x;
+              sy += p.y;
+              sr += p.r;
+            });
+            // centre = centroid of accepted edge points
+            cx = sx / keep.length;
+            cy = sy / keep.length;
+            cr = sr / keep.length;
+            var support = keep.length / N;
+            if (iter === 1) return { x: cx, y: cy, r: cr, support: support };
+          }
+          return null;
+        }
+
+        function pushCand(list, c) {
+          if (!isFinite(c.x) || !isFinite(c.y) || !isFinite(c.r) || c.r <= 0) return;
+          for (var i = 0; i < list.length; i++) {
+            var o = list[i];
+            if (Math.hypot(c.x - o.x, c.y - o.y) < Math.max(o.r, c.r) * 0.8) {
+              o.x = (o.x * o.n + c.x) / (o.n + 1);
+              o.y = (o.y * o.n + c.y) / (o.n + 1);
+              o.r = (o.r * o.n + c.r) / (o.n + 1);
+              o.n++;
+              return;
+            }
+          }
+          list.push({ x: c.x, y: c.y, r: c.r, n: 1 });
+        }
+
+        function contoursToCircles(cv, bin, out, minR, maxR, minFill) {
+          var contours = new cv.MatVector(),
+            hier = new cv.Mat();
+          try {
+            cv.findContours(bin, contours, hier, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
+            for (var i = 0; i < contours.size(); i++) {
+              var c = contours.get(i);
+              try {
+                var area = cv.contourArea(c);
+                if (area < Math.PI * minR * minR * 0.25) continue;
+                var circ = cv.minEnclosingCircle(c);
+                var r = circ.radius;
+                if (r < minR || r > maxR) continue;
+                var fill = area / (Math.PI * r * r);
+                if (fill < minFill) continue;
+                out.push({ x: circ.center.x, y: circ.center.y, r: r });
+              } catch (e) {
+              } finally {
+                c.delete();
+              }
+            }
+          } catch (e) {
+          } finally {
+            try {
+              contours.delete();
+            } catch (e) {}
+            try {
+              hier.delete();
+            } catch (e) {}
+          }
+        }
+
+        function detectBoules(canvasEl, jackPx, sens) {
+          if (!state.cvReady || !window.cv) return [];
           var cv = window.cv;
-          var SW = Math.min(640, Math.max(420, canvasEl.width));
+          var SW = 960;
           var sc = SW / canvasEl.width;
           var SH = Math.max(1, Math.round(canvasEl.height * sc));
           var tmp = document.createElement("canvas");
           tmp.width = SW;
           tmp.height = SH;
-          tmp.getContext("2d").drawImage(canvasEl, 0, 0, SW, SH);
+          var tctx = tmp.getContext("2d", { willReadFrequently: true });
+          tctx.drawImage(canvasEl, 0, 0, SW, SH);
+          var lum = luminanceOf(tctx, SW, SH);
 
-          // Nisbah rasmi sekitar 2.5, tetapi perspektif dan anggaran jack boleh berubah.
-          var expectedR = jackPx.r * 2.5;
-          var minR = Math.max(6, expectedR * 0.52 * sc);
-          var maxR = Math.max(minR + 6, expectedR * 1.58 * sc);
-          var src = null, views = [], mats = [];
+          var minR = SW * (0.016 - sens * 0.0018); // more sensitive -> smaller boules allowed
+          var maxR = SW * 0.24;
           var raw = [];
-          var magData = null, magW = 0, magH = 0, magThr = 0;
+          var src = null,
+            gray = null,
+            eq = null,
+            blur = null,
+            edges = null,
+            bw = null,
+            k = null;
 
           try {
             src = cv.imread(tmp);
-            views = preprocessViews(cv, src).slice(0, 2);
-            if (!views.length) return [];
+            gray = new cv.Mat();
+            cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+            // local contrast boost so grey boules on grey gravel still show edges
+            eq = new cv.Mat();
+            try {
+              var clahe = new cv.CLAHE(2.6, new cv.Size(8, 8));
+              clahe.apply(gray, eq);
+              clahe.delete();
+            } catch (e) {
+              cv.equalizeHist(gray, eq);
+            }
+            blur = new cv.Mat();
+            cv.medianBlur(eq, blur, 5);
 
-            views.forEach(function (view, vi) {
-              // Tenaga tepi bagi setiap pandangan, digabung ambil nilai maksimum.
-              var gx = new cv.Mat(), gy = new cv.Mat(), mag = new cv.Mat();
+            /* ---- pass 1: Hough circles, several sensitivities ---- */
+            var p2base = 46 - sens * 6; // 46 .. 22
+            [p2base, p2base - 8, p2base - 14, p2base - 20].forEach(function (p2) {
+              if (p2 < 10) p2 = 10;
+              var circles = new cv.Mat();
               try {
-                cv.Sobel(view, gx, cv.CV_32F, 1, 0, 3);
-                cv.Sobel(view, gy, cv.CV_32F, 0, 1, 3);
-                cv.magnitude(gx, gy, mag);
-                if (!magData) {
-                  magW = mag.cols; magH = mag.rows;
-                  magData = new Float32Array(mag.data32F);
-                } else {
-                  var d = mag.data32F;
-                  for (var i = 0; i < magData.length && i < d.length; i++) {
-                    if (d[i] > magData[i]) magData[i] = d[i];
-                  }
-                }
-              } catch (e) {}
-              [gx, gy, mag].forEach(function (m) { if (m && m.delete) { try { m.delete(); } catch (e) {} } });
-
-              // Pandangan utama lebih sensitif; pandangan sokongan lebih ketat
-              // supaya tidak membanjiri dengan calon palsu.
-              var thresholds = vi === 0 ? [38] : [44];
-              thresholds.forEach(function (voteThreshold) {
-                var circles = new cv.Mat();
-                mats.push(circles);
-                try {
-                  cv.HoughCircles(
-                    view, circles, cv.HOUGH_GRADIENT, 1.15,
-                    Math.max(14, Math.round(minR * 1.6)),
-                    90, voteThreshold, Math.round(minR), Math.round(maxR)
-                  );
-                } catch (e) { return; }
-                var lim = Math.min(circles.cols, 16);
-                for (var i = 0; i < lim; i++) {
+                cv.HoughCircles(
+                  blur,
+                  circles,
+                  cv.HOUGH_GRADIENT,
+                  1,
+                  Math.max(8, Math.round(minR * 1.6)),
+                  110,
+                  p2,
+                  Math.round(minR),
+                  Math.round(maxR),
+                );
+                for (var i = 0; i < circles.cols; i++) {
                   raw.push({
-                    sx: circles.data32F[i * 3],
-                    sy: circles.data32F[i * 3 + 1],
-                    sr: circles.data32F[i * 3 + 2]
+                    x: circles.data32F[i * 3],
+                    y: circles.data32F[i * 3 + 1],
+                    r: circles.data32F[i * 3 + 2],
                   });
                 }
-              });
+              } catch (e) {
+              } finally {
+                try {
+                  circles.delete();
+                } catch (e) {}
+              }
             });
 
-            if (magData) {
-              var samples = [];
-              for (var p = 0; p < magData.length; p += 17) samples.push(magData[p]);
-              samples.sort(function (a, b) { return a - b; });
-              var q65 = samples.length ? samples[Math.floor(samples.length * 0.65)] : 20;
-              magThr = Math.max(18, q65 * 1.2);
-            }
+            /* ---- pass 2: Canny edge contours (colour independent) ---- */
+            edges = new cv.Mat();
+            k = cv.Mat.ones(3, 3, cv.CV_8U);
+            cv.Canny(blur, edges, 30 + sens * 2, 90 + sens * 6);
+            cv.dilate(edges, edges, k);
+            cv.morphologyEx(edges, edges, cv.MORPH_CLOSE, k);
+            contoursToCircles(cv, edges, raw, minR, maxR, 0.32);
+
+            /* ---- pass 3: adaptive threshold, both polarities ---- */
+            bw = new cv.Mat();
+            [cv.THRESH_BINARY, cv.THRESH_BINARY_INV].forEach(function (mode) {
+              try {
+                cv.adaptiveThreshold(
+                  blur,
+                  bw,
+                  255,
+                  cv.ADAPTIVE_THRESH_GAUSSIAN_C,
+                  mode,
+                  61,
+                  mode === cv.THRESH_BINARY ? -6 : 6,
+                );
+                cv.morphologyEx(bw, bw, cv.MORPH_OPEN, k);
+                cv.morphologyEx(bw, bw, cv.MORPH_CLOSE, k);
+                contoursToCircles(cv, bw, raw, minR, maxR, 0.55);
+              } catch (e) {}
+            });
           } catch (e) {
           } finally {
-            [src].concat(views).concat(mats).forEach(function (m) {
-              if (m && m.delete) { try { m.delete(); } catch (e) {} }
+            [src, gray, eq, blur, edges, bw, k].forEach(function (m) {
+              if (m && m.delete) {
+                try {
+                  m.delete();
+                } catch (e) {}
+              }
             });
           }
-          if (!raw.length || !magData) return [];
 
-          function support(x, y, r) {
-            if (r <= 2) return 0;
-            var N = 40, hit = 0, used = 0;
-            for (var i = 0; i < N; i++) {
-              var a = (i / N) * Math.PI * 2;
-              var ca = Math.cos(a), sa = Math.sin(a);
-              var px = Math.round(x + ca * r), py = Math.round(y + sa * r);
-              if (px < 1 || py < 1 || px >= magW - 1 || py >= magH - 1) continue;
-              used++;
-              var best = 0;
-              for (var d = -2; d <= 2; d++) {
-                var qx = Math.round(x + ca * (r + d));
-                var qy = Math.round(y + sa * (r + d));
-                if (qx < 0 || qy < 0 || qx >= magW || qy >= magH) continue;
-                best = Math.max(best, magData[qy * magW + qx]);
-              }
-              if (best >= magThr) hit++;
-            }
-            return used < N * 0.45 ? 0 : hit / used;
-          }
-
-          // Buang calon bertindih sebelum pemarkahan (jimat masa banyak).
-          var uniq = [];
+          /* ---- merge duplicates from all passes ---- */
+          var merged = [];
           raw.forEach(function (c) {
-            for (var u = 0; u < uniq.length; u++) {
-              var k = uniq[u];
-              if (Math.hypot(c.sx - k.sx, c.sy - k.sy) < Math.min(c.sr, k.sr) * 0.45 &&
-                  Math.abs(c.sr - k.sr) < k.sr * 0.28) return;
-            }
-            uniq.push(c);
+            pushCand(merged, c);
           });
-          raw = uniq;
 
-          var cands = [];
-          raw.forEach(function (c) {
-            var bestR = c.sr, bestS = support(c.sx, c.sy, c.sr);
-            for (var k = -3; k <= 3; k++) {
-              var rr = c.sr * (1 + k * 0.04);
-              if (rr < minR * 0.9 || rr > maxR * 1.1) continue;
-              var s = support(c.sx, c.sy, rr);
-              if (s > bestS) { bestS = s; bestR = rr; }
-            }
-            if (bestS < 0.58) return;
-            var item = { x: c.sx / sc, y: c.sy / sc, r: bestR / sc, s: bestS };
-            var sizeErr = Math.abs(item.r - expectedR) / Math.max(1, expectedR);
-            item.score = item.s * 2.4 - sizeErr * 0.38;
-            cands.push(item);
+          /* ---- refine each candidate to its true circle ---- */
+          var refined = [];
+          merged.forEach(function (c) {
+            var rf = refineCircle(lum, SW, SH, c, minR, maxR);
+            var f = rf || { x: c.x, y: c.y, r: c.r, support: 0.3 };
+            if (f.r < minR * 0.85 || f.r > maxR * 1.15) return;
+            var minSupport = 0.62 - sens * 0.07; // 0.62 .. 0.34
+            if (f.support < minSupport && c.n < 2) return;
+            f.votes = c.n;
+            pushCand(refined, f);
+            var last = refined[refined.length - 1];
+            if (last && last.support === undefined) last.support = f.support;
           });
-          cands.sort(function (a, b) { return b.score - a.score; });
 
-          // Saiz boule sepatutnya konsisten: buang calon yang terlalu jauh
-          // daripada saiz median (biasanya artifak Hough / bayang).
-          if (cands.length > 2) {
-            var rs = cands.map(function (c) { return c.r; }).sort(function (a, b) { return a - b; });
-            var medR = rs[Math.floor(rs.length / 2)];
-            cands = cands.filter(function (c) { return Math.abs(c.r - medR) <= medR * 0.28; });
-          }
-
+          /* ---- to source-canvas pixels, drop the jack, rank ---- */
           var out = [];
-          cands.forEach(function (c) {
-            var fromJack = Math.hypot(c.x - jackPx.x, c.y - jackPx.y);
-            if (fromJack < jackPx.r + c.r * 0.48) return;
-            // Benarkan bola terpotong sedikit di tepi gambar.
-            if (c.x < -c.r * 0.15 || c.y < -c.r * 0.15 ||
-                c.x > canvasEl.width + c.r * 0.15 || c.y > canvasEl.height + c.r * 0.15) return;
-            for (var i = 0; i < out.length; i++) {
-              var kept = out[i];
-              var gap = Math.hypot(c.x - kept.x, c.y - kept.y);
-              // Dua boule fizikal tidak boleh bertindih: pusat mesti sekurang-
-              // kurangnya ~85% jumlah jejari. Ini membuang bulatan hantu.
-              if (gap < (c.r + kept.r) * 0.85) return;
+          refined.forEach(function (c) {
+            var b = { x: c.x / sc, y: c.y / sc, r: c.r / sc };
+            if (jackPx) {
+              var dd = Math.hypot(b.x - jackPx.x, b.y - jackPx.y);
+              if (dd < Math.max(jackPx.r * 1.2, b.r * 0.6)) return; // that's the jack itself
+              b.d = Math.max(0, dd - b.r - jackPx.r);
+              b.dc = dd;
             }
-            c.d = Math.max(0, fromJack - c.r - jackPx.r);
-            out.push(c);
+            out.push(b);
           });
-          // Simpan hanya calon yang kukuh berbanding calon terbaik, dan hadkan
-          // bilangan maksimum supaya tiada "fake ball" membanjiri paparan.
-          if (out.length) {
-            var bestScore = out[0].score;
-            out = out.filter(function (c) { return c.score >= bestScore * 0.72; });
-          }
-          out = out.slice(0, 12);
-          out.sort(function (a, b) { return a.d - b.d; });
-          return out;
+
+          // stable, unbiased ranking: closest edge-to-edge gap wins, no colour filter
+          out.sort(function (a, b) {
+            return a.d - b.d;
+          });
+          return out.slice(0, 60);
         }
 
         /* ---------------- arrows ---------------- */
+        var CENTER_TOL = 0.12;
+        var LEVEL_TOL = 6;
+        var HOLD_MS = 900;
         function showArrows(dx, dy, on) {
           var TH = CENTER_TOL;
           arrows.left.classList.toggle("show", !!on && dx < -TH);
@@ -1407,9 +1906,6 @@ function preprocessViews(cv, src) {
         }
 
         /* ---------------- main loop ---------------- */
-        var CENTER_TOL = 0.12; // easier to center (12% of frame)
-        var LEVEL_TOL = 6; // degrees — stabilizer corrects the rest
-        var HOLD_MS = 900;
         var lastDetect = 0,
           detectEvery = 150;
         function loop(ts) {
@@ -1421,14 +1917,13 @@ function preprocessViews(cv, src) {
             var d = detectJack();
             if (d) {
               d.ts = ts;
-              // smooth to reduce jitter
               if (state.jack) {
                 d.x = state.jack.x * 0.45 + d.x * 0.55;
                 d.y = state.jack.y * 0.45 + d.y * 0.55;
                 d.r = state.jack.r * 0.5 + d.r * 0.5;
               }
               state.jack = d;
-            } else if (state.jack && ts - (state.jack.ts || 0) > 3000) {
+            } else if (state.jack && ts - (state.jack.ts || 0) > 1200) {
               state.jack = null;
             }
           }
@@ -1444,7 +1939,7 @@ function preprocessViews(cv, src) {
             hideArrows();
             countRing.classList.remove("on");
             state.steadySince = 0;
-            setStatus(state.cvReady ? "Sasarkan pangkah merah pada Jack" : "Mod manual — tekan Snap", "search");
+            setStatus(state.cvReady ? "Mencari Jack..." : "Mod manual — tekan Snap", "search");
             return;
           }
 
@@ -1460,7 +1955,7 @@ function preprocessViews(cv, src) {
             showArrows(dx, dy, true);
             countRing.classList.remove("on");
             state.steadySince = 0;
-            setStatus("Halakan pangkah merah ke pusat Jack", "guide");
+            setStatus("Pandu arah kamera ke Jack", "guide");
             return;
           }
           hideArrows();
@@ -1485,46 +1980,27 @@ function preprocessViews(cv, src) {
           }
         }
 
-        /* ---------------- snap + stabilizer + analysis ---------------- */
-/* ---------------- SNAP DAHULU, ANALISIS KEMUDIAN ---------------- */
-        // Kanvas simpanan gambar asal (tanpa lakaran) supaya analisis boleh
-        // diulang tanpa merosakkan gambar yang disnap.
-        var baseSnap = document.createElement("canvas");
-        var bctx = baseSnap.getContext("2d", { willReadFrequently: true });
-        var snapMeta = null; // { jr, cx, cy }
+        /* ---------------- capture + stabilise ---------------- */
+        var baseShot = document.createElement("canvas"); // clean stabilised frame (no overlay)
+        var bctx = baseShot.getContext("2d");
 
-        function doSnap() {
-          if (state.frozen || state.busy || !state.camReady) return;
-          state.busy = true;
-          countRing.classList.remove("on");
-          state.steadySince = 0;
-
+        function captureBase() {
           var vw = video.videoWidth || 1280,
             vh = video.videoHeight || 720;
-          freeze.width = vw;
-          freeze.height = vh;
-          baseSnap.width = vw;
-          baseSnap.height = vh;
+          baseShot.width = vw;
+          baseShot.height = vh;
 
-          // --- LANGKAH 1: RAKAM GAMBAR (stabilizer: pusat pada jack + ratakan) ---
           var jx = state.jack ? state.jack.x * vw : vw / 2;
           var jy = state.jack ? state.jack.y * vh : vh / 2;
-          var rot = 0;
-          if (state.gyroOK) {
-            rot = Math.max(-12, Math.min(12, state.gamma)) * (Math.PI / 180);
-          }
-          var shiftX = vw / 2 - jx,
-            shiftY = vh / 2 - jy;
-          var maxShift = 0.18;
-          shiftX = Math.max(-vw * maxShift, Math.min(vw * maxShift, shiftX));
-          shiftY = Math.max(-vh * maxShift, Math.min(vh * maxShift, shiftY));
-          var zoom = 1 + maxShift + Math.abs(rot) * 0.6;
+          var rot = state.gyroOK ? clamp(state.gamma, -12, 12) * (Math.PI / 180) : 0;
+          var shiftX = clamp(vw / 2 - jx, -vw * 0.18, vw * 0.18);
+          var shiftY = clamp(vh / 2 - jy, -vh * 0.18, vh * 0.18);
+          var zoom = 1 + 0.18 + Math.abs(rot) * 0.6;
 
           bctx.save();
-          bctx.setTransform(1, 0, 0, 1, 0, 0);
           bctx.fillStyle = "#000";
           bctx.fillRect(0, 0, vw, vh);
-          bctx.filter = "brightness(1.06) contrast(1.16) saturate(1.05)";
+          bctx.filter = "brightness(1.06) contrast(1.18) saturate(1.05)";
           bctx.translate(vw / 2, vh / 2);
           bctx.rotate(-rot);
           bctx.scale(zoom, zoom);
@@ -1535,87 +2011,74 @@ function preprocessViews(cv, src) {
 
           var jr = (state.jack ? state.jack.r * vw : vw * 0.04) * zoom;
           if (jr < vw * 0.02) jr = vw * 0.03;
-          snapMeta = { cx: vw / 2, cy: vh / 2, jr: jr };
-
-          // Papar gambar yang disnap SERTA-MERTA (bukti gambar sudah diambil)
-          fctx.setTransform(1, 0, 0, 1, 0, 0);
-          fctx.clearRect(0, 0, vw, vh);
-          fctx.drawImage(baseSnap, 0, 0);
-          freeze.style.display = "block";
-          video.classList.add("hidden");
-          state.frozen = true;
-          jackMark.style.display = "none";
-          hideArrows();
-          setResultMode(true);
-          setStatus("Gambar diambil — menganalisis...", "guide");
-          if (navigator.vibrate) navigator.vibrate(60);
-
-          // --- LANGKAH 2: ANALISIS selepas gambar dipaparkan ---
-          requestAnimationFrame(function () {
-            requestAnimationFrame(function () {
-              try {
-                analyzeSnapshot();
-              } catch (e) {
-                setStatus("Gambar diambil (analisis gagal)", "done");
-              }
-              state.busy = false;
-              try {
-                saveShot(freeze.toDataURL("image/jpeg", 0.72));
-              } catch (e) {
-                toast("Gagal menyimpan rekod.");
-              }
-            });
-          });
+          return { vw: vw, vh: vh, jack: { x: vw / 2, y: vh / 2, r: jr } };
         }
 
-        function analyzeSnapshot() {
-          if (!snapMeta) return;
-          var vw = baseSnap.width,
-            vh = baseSnap.height;
-          var cx = snapMeta.cx,
-            cy = snapMeta.cy,
-            jr = snapMeta.jr;
+        /* ---------------- render overlay ---------------- */
+        function renderResult(base, boules) {
+          var vw = base.vw,
+            vh = base.vh,
+            cx = base.jack.x,
+            cy = base.jack.y,
+            jr = base.jack.r;
 
-          // Lukis semula gambar asal dahulu (buang lakaran lama)
-          fctx.setTransform(1, 0, 0, 1, 0, 0);
-          fctx.clearRect(0, 0, vw, vh);
-          fctx.drawImage(baseSnap, 0, 0);
+          freeze.width = vw;
+          freeze.height = vh;
+          fctx.drawImage(baseShot, 0, 0);
 
-          // --- AUTO-MAP boules di sekeliling jack (guna gambar yang disnap) ---
-          var boules = detectBoules(baseSnap, { x: cx, y: cy, r: jr });
-          var mmPerPx = 30 / (2 * jr); // jack rasmi ~30 mm diameter
+          // ---- scale calibration ----
+          var mmJack = 30 / (2 * jr); // official jack Ø30mm
+          var mmBoule = null;
+          if (boules.length) {
+            var rs = boules
+              .map(function (b) {
+                return b.r;
+              })
+              .sort(function (a, b) {
+                return a - b;
+              });
+            var medR = rs[rs.length >> 1];
+            if (medR > 0) mmBoule = 74 / (2 * medR); // typical competition boule Ø74mm
+          }
+          var mmPerPx = mmJack;
+          if (state.cal === "boule" && mmBoule) mmPerPx = mmBoule;
+          else if (state.cal === "auto" && mmBoule) {
+            var ratio = mmBoule / mmJack;
+            mmPerPx = ratio > 0.5 && ratio < 2 ? (mmJack + mmBoule) / 2 : mmJack;
+          }
 
-          var LW = Math.max(3, vw * 0.0042);
-          var fs = Math.max(20, vw * 0.028);
-          if (boules.length > 10) fs = Math.max(14, fs * (10 / boules.length) ** 0.35);
+          var LW = Math.max(3, vw * 0.0038);
+          var fs = Math.max(18, vw * 0.026);
+          if (boules.length > 10) fs = Math.max(13, fs * Math.pow(10 / boules.length, 0.3));
 
-          // jack marker
+          // jack + reference rings
           fctx.lineWidth = LW;
           fctx.strokeStyle = "rgba(255,193,7,0.98)";
           fctx.beginPath();
           fctx.arc(cx, cy, jr, 0, Math.PI * 2);
           fctx.stroke();
           fctx.setLineDash([10, 8]);
-          fctx.strokeStyle = "rgba(0,242,254,0.55)";
-          fctx.lineWidth = Math.max(2, LW * 0.6);
-          [2.2, 3.6, 5].forEach(function (m) {
+          fctx.strokeStyle = "rgba(0,242,254,0.45)";
+          fctx.lineWidth = Math.max(2, LW * 0.55);
+          [2.2, 3.6, 5, 6.6].forEach(function (m) {
             fctx.beginPath();
             fctx.arc(cx, cy, jr * m, 0, Math.PI * 2);
             fctx.stroke();
           });
           fctx.setLineDash([]);
-
           fctx.font = "700 " + fs + "px Poppins, sans-serif";
           fctx.textAlign = "center";
           fctx.textBaseline = "middle";
 
-          function tag(text, x, y, color) {
-            var pad = fs * 0.42;
+          function pill(text, x, y, color, size) {
+            var s = size || fs;
+            fctx.font = "700 " + s + "px Poppins, sans-serif";
+            var pad = s * 0.42;
             var w = fctx.measureText(text).width + pad * 2;
-            var h = fs * 1.5;
-            fctx.fillStyle = "rgba(0,0,0,0.6)";
-            fctx.beginPath();
+            var h = s * 1.5;
             var rr = h / 2;
+            fctx.fillStyle = "rgba(0,0,0,0.62)";
+            fctx.beginPath();
             fctx.moveTo(x - w / 2 + rr, y - h / 2);
             fctx.arcTo(x + w / 2, y - h / 2, x + w / 2, y + h / 2, rr);
             fctx.arcTo(x + w / 2, y + h / 2, x - w / 2, y + h / 2, rr);
@@ -1627,86 +2090,190 @@ function preprocessViews(cv, src) {
             fctx.fillText(text, x, y);
           }
 
-          tag("JACK", cx, cy - jr - fs * 1.2, "rgba(255,193,7,1)");
+          pill("JACK", cx, cy - jr - fs * 1.15, "rgba(255,193,7,1)");
 
           boules.forEach(function (b, i) {
-            var isClosest = i === 0;
-            var col = isClosest ? "rgba(34,224,122,1)" : "rgba(0,242,254,1)";
-            var bw = Math.max(2, b.r * 0.055) * (isClosest ? 1.5 : 1);
+            var isFirst = i === 0;
+            var col = isFirst ? "rgba(34,224,122,1)" : "rgba(0,242,254,1)";
+
+            // exact circle at the measured diameter of THIS boule
+            fctx.lineWidth = isFirst ? LW * 1.5 : LW;
+            fctx.strokeStyle = "rgba(0,0,0,0.5)";
+            fctx.beginPath();
+            fctx.arc(b.x, b.y, b.r + LW * 0.7, 0, Math.PI * 2);
+            fctx.stroke();
             fctx.strokeStyle = col;
-            fctx.lineWidth = bw;
             fctx.beginPath();
             fctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
             fctx.stroke();
 
-            fctx.fillStyle = col;
-            fctx.beginPath();
-            fctx.arc(b.x, b.y, Math.max(2, b.r * 0.07), 0, Math.PI * 2);
-            fctx.fill();
-
+            // measuring line jack edge -> boule edge
             var ang = Math.atan2(b.y - cy, b.x - cx);
-            var p1x = cx + Math.cos(ang) * jr,
-              p1y = cy + Math.sin(ang) * jr;
-            var p2x = b.x - Math.cos(ang) * b.r,
-              p2y = b.y - Math.sin(ang) * b.r;
-            fctx.lineWidth = Math.max(2, bw * 0.8);
-            fctx.setLineDash(isClosest ? [] : [12, 9]);
+            fctx.setLineDash(isFirst ? [] : [12, 9]);
+            fctx.lineWidth = Math.max(2, LW * 0.8);
+            fctx.strokeStyle = col;
             fctx.beginPath();
-            fctx.moveTo(p1x, p1y);
-            fctx.lineTo(p2x, p2y);
+            fctx.moveTo(cx + Math.cos(ang) * jr, cy + Math.sin(ang) * jr);
+            fctx.lineTo(b.x - Math.cos(ang) * b.r, b.y - Math.sin(ang) * b.r);
             fctx.stroke();
             fctx.setLineDash([]);
 
-            var tk = Math.max(6, b.r * 0.22);
-            var nx = -Math.sin(ang) * tk,
-              ny = Math.cos(ang) * tk;
+            // ---- NUMBER BADGE EXACTLY AT THE CENTRE OF THE BOULE ----
+            var badgeR = Math.max(fs * 0.62, Math.min(b.r * 0.55, fs * 1.15));
             fctx.beginPath();
-            fctx.moveTo(p1x - nx, p1y - ny);
-            fctx.lineTo(p1x + nx, p1y + ny);
-            fctx.moveTo(p2x - nx, p2y - ny);
-            fctx.lineTo(p2x + nx, p2y + ny);
+            fctx.arc(b.x, b.y, badgeR, 0, Math.PI * 2);
+            fctx.fillStyle = isFirst ? "rgba(6,60,40,0.86)" : "rgba(0,0,0,0.66)";
+            fctx.fill();
+            fctx.lineWidth = Math.max(2, LW * 0.7);
+            fctx.strokeStyle = col;
             fctx.stroke();
+            fctx.fillStyle = col;
+            fctx.font = "800 " + badgeR * 1.15 + "px Poppins, sans-serif";
+            fctx.fillText(String(i + 1), b.x, b.y + badgeR * 0.04);
 
-            var mid = { x: (p1x + p2x) / 2, y: (p1y + p2y) / 2 };
-            var cm = Math.max(0, b.d * mmPerPx) / 10;
-            tag(i + 1 + " · " + cm.toFixed(1) + " cm", mid.x, mid.y, col);
-            tag("#" + (i + 1), b.x, b.y - b.r - fs * 1.1, col);
+            // distance label just outside the boule, on the jack side
+            var cm = (b.d * mmPerPx) / 10;
+            var lx = b.x - Math.cos(ang) * (b.r + fs * 1.15);
+            var ly = b.y - Math.sin(ang) * (b.r + fs * 1.15);
+            pill(cm.toFixed(1) + " cm", lx, ly, col, fs * 0.86);
           });
 
           // header + verdict
           fctx.textAlign = "left";
+          fctx.font = "700 " + fs + "px Poppins, sans-serif";
           fctx.fillStyle = "rgba(255,255,255,0.95)";
           fctx.strokeStyle = "rgba(0,0,0,0.55)";
           fctx.lineWidth = Math.max(2, fs * 0.12);
           fctx.strokeText("PETANQUE REFEREE PRO", fs * 0.7, fs * 1.2);
           fctx.fillText("PETANQUE REFEREE PRO", fs * 0.7, fs * 1.2);
           var verdict = boules.length
-            ? boules.length + " boule · Terdekat: #1 (" + ((boules[0].d * mmPerPx) / 10).toFixed(1) + " cm)"
+            ? "Terdekat: #1 (" + ((boules[0].d * mmPerPx) / 10).toFixed(1) + " cm)"
             : "Tiada boule dikesan di sekeliling Jack";
+          if (boules.length > 1) {
+            var gap = ((boules[1].d - boules[0].d) * mmPerPx) / 10;
+            verdict += "  |  beza #2: " + gap.toFixed(1) + " cm";
+          }
           fctx.strokeText(verdict, fs * 0.7, fs * 2.7);
           fctx.fillText(verdict, fs * 0.7, fs * 2.7);
-
-          setStatus(
-            boules.length
-              ? "Siap! " + boules.length + " boule dikesan dalam gambar"
-              : "Gambar diambil — tiada boule dikesan",
-            "done"
+          fctx.strokeText(
+            new Date().toLocaleString() + "  ·  " + boules.length + " boule",
+            fs * 0.7,
+            fs * 4.0,
           );
+          fctx.fillText(
+            new Date().toLocaleString() + "  ·  " + boules.length + " boule",
+            fs * 0.7,
+            fs * 4.0,
+          );
+
+          return mmPerPx;
         }
 
+        function renderSheet(boules, mmPerPx) {
+          var list = $("rankList");
+          list.innerHTML = "";
+          var v = $("verdict");
+          if (!boules.length) {
+            v.textContent =
+              "Tiada boule dikesan. Naikkan sensitiviti dalam Tetapan atau tekan Imbas Lagi.";
+          } else {
+            var d1 = (boules[0].d * mmPerPx) / 10;
+            var txt = "Boule #1 paling hampir — " + d1.toFixed(1) + " cm dari Jack.";
+            if (boules.length > 1) {
+              var gap = ((boules[1].d - boules[0].d) * mmPerPx) / 10;
+              txt +=
+                gap < 0.3
+                  ? " Beza dengan #2 hanya " + gap.toFixed(1) + " cm — perlu ukur fizikal!"
+                  : " Beza dengan #2: " + gap.toFixed(1) + " cm.";
+            }
+            v.textContent = txt;
+          }
+          boules.forEach(function (b, i) {
+            var row = document.createElement("div");
+            row.className = "rank" + (i === 0 ? " first" : "");
+            var no = document.createElement("div");
+            no.className = "no";
+            no.textContent = String(i + 1);
+            var lab = document.createElement("div");
+            var dia = ((2 * b.r * mmPerPx) / 10).toFixed(1);
+            lab.innerHTML =
+              "Boule #" + (i + 1) + '<div class="dia">Ø ' + dia + " cm (dianggar)</div>";
+            var d = document.createElement("div");
+            d.className = "d";
+            d.textContent = ((b.d * mmPerPx) / 10).toFixed(1) + " cm";
+            row.appendChild(no);
+            row.appendChild(lab);
+            row.appendChild(d);
+            list.appendChild(row);
+          });
+        }
+
+        function analyse(sens) {
+          var base = state.last ? state.last.base : null;
+          if (!base) return;
+          setStatus("Menganalisis semua boule...", "guide");
+          var boules = detectBoules(baseShot, base.jack, sens);
+          var mmPerPx = renderResult(base, boules);
+          renderSheet(boules, mmPerPx);
+          state.last.boules = boules;
+          state.last.mmPerPx = mmPerPx;
+          state.last.img = freeze.toDataURL("image/jpeg", 0.82);
+          setStatus(
+            boules.length
+              ? "Dianalisis — " + boules.length + " boule ditag"
+              : "Dianalisis — tiada boule dikesan",
+            "done",
+          );
+          return boules;
+        }
+
+        function doSnap() {
+          if (state.frozen || state.busy || !state.camReady) return;
+          state.busy = true;
+          countRing.classList.remove("on");
+          state.steadySince = 0;
+          setStatus("Menstabil & menganalisis...", "guide");
+
+          var base = captureBase();
+          state.last = { base: base };
+
+          var boules = analyse(state.sens) || [];
+
+          freeze.style.display = "block";
+          video.classList.add("hidden");
+          state.frozen = true;
+          state.busy = false;
+          jackMark.style.display = "none";
+          hideArrows();
+          setResultMode(true);
+          $("stage").classList.add("result");
+          $("sheet").classList.add("on");
+
+          try {
+            saveShot(state.last.img, {
+              n: boules.length,
+              best: boules.length
+                ? ((boules[0].d * state.last.mmPerPx) / 10).toFixed(1) + " cm"
+                : "",
+            });
+          } catch (e) {
+            toast("Gagal menyimpan rekod.");
+          }
+          if (navigator.vibrate) navigator.vibrate(60);
+        }
 
         function resume() {
-          if (state.busy) return;
           state.frozen = false;
           freeze.style.display = "none";
           video.classList.remove("hidden");
           state.steadySince = 0;
           setResultMode(false);
-          setStatus("Sasarkan pangkah merah pada Jack", "search");
+          $("stage").classList.remove("result");
+          $("sheet").classList.remove("on");
+          setStatus("Mencari Jack...", "search");
         }
 
         function setResultMode(on) {
-          $("crosshair").classList.toggle("off", on);
           if (on) {
             btnSnap.textContent = "Kamera Semula";
             btnSnap.classList.remove("primary");
@@ -1719,9 +2286,54 @@ function preprocessViews(cv, src) {
         }
 
         btnSnap.addEventListener("click", function () {
-          if (state.busy) return; // sedang menganalisis gambar yang baru disnap
           if (state.frozen) resume();
           else doSnap();
+        });
+
+        // zoom the analysed result
+        $("btnZoom").addEventListener("click", function () {
+          if (state.last && state.last.img) ZV.open(state.last.img);
+        });
+        // tap the frozen photo to zoom too
+        freeze.addEventListener("click", function () {
+          if (state.frozen && state.last && state.last.img) ZV.open(state.last.img);
+        });
+
+        // rescan with maximum sensitivity
+        $("btnRescan").addEventListener("click", function () {
+          if (!state.last) return;
+          var s = Math.min(4, state.sens + 1);
+          state.sens = s;
+          rngSens.value = String(s);
+          $("sensHint").textContent = SENS_TEXT[s];
+          setStr(LS.sens, String(s));
+          var b = analyse(s) || [];
+          toast("Imbas semula: " + b.length + " boule ditag (sensitiviti " + (s + 1) + "/5)");
+        });
+
+        // share / save
+        $("btnShare").addEventListener("click", function () {
+          if (!state.last || !state.last.img) return;
+          fetch(state.last.img)
+            .then(function (r) {
+              return r.blob();
+            })
+            .then(function (blob) {
+              var file = new File([blob], "petanque-measure.jpg", { type: "image/jpeg" });
+              if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                return navigator.share({ files: [file], title: "Petanque Referee Pro" });
+              }
+              var a = document.createElement("a");
+              a.href = URL.createObjectURL(blob);
+              a.download = "petanque-measure.jpg";
+              a.click();
+              setTimeout(function () {
+                URL.revokeObjectURL(a.href);
+              }, 4000);
+            })
+            .catch(function () {
+              toast("Gagal berkongsi gambar.");
+            });
         });
 
         /* ---------------- boot ---------------- */
@@ -1768,7 +2380,7 @@ function preprocessViews(cv, src) {
               toast("AI tidak dimuatkan — mod snap manual sahaja.");
               setStatus("Mod manual — tekan Snap", "guide");
             } else {
-              setStatus("Sasarkan pangkah merah pada Jack", "search");
+              setStatus("Mencari Jack...", "search");
             }
           });
         }
