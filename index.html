@@ -82,6 +82,100 @@
         display: none;
         z-index: 3;
         background: #000;
+        /* contain: seluruh gambar kelihatan, tiada bola terkeluar */
+        object-fit: contain;
+        transform-origin: 0 0;
+        will-change: transform;
+        touch-action: none;
+      }
+
+      /* ===================== ZOOM CONTROLS ===================== */
+      #zoomBar {
+        position: absolute;
+        z-index: 10;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        display: none;
+        flex-direction: column;
+        gap: 8px;
+      }
+      #zoomBar.on {
+        display: flex;
+      }
+      #zoomBar button {
+        width: 46px;
+        height: 46px;
+        border-radius: 14px;
+        border: 1px solid var(--glass-brd);
+        background: rgba(255, 255, 255, 0.78);
+        backdrop-filter: blur(10px);
+        color: var(--ink);
+        font-size: 20px;
+        font-weight: 700;
+        box-shadow: var(--glass-shadow);
+        cursor: pointer;
+      }
+      #zoomBar .lvl {
+        font-size: 11px;
+        font-weight: 700;
+        text-align: center;
+        color: #fff;
+        background: rgba(23, 34, 59, 0.75);
+        border-radius: 999px;
+        padding: 3px 0;
+      }
+
+      /* ===================== LIGHTBOX ===================== */
+      #lightbox {
+        position: fixed;
+        inset: 0;
+        z-index: 80;
+        background: rgba(6, 12, 24, 0.95);
+        display: none;
+        overflow: hidden;
+      }
+      #lightbox.open {
+        display: block;
+      }
+      #lbImg {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        transform-origin: 0 0;
+        will-change: transform;
+        touch-action: none;
+      }
+      #lbClose {
+        position: absolute;
+        z-index: 2;
+        top: calc(12px + var(--safe-t));
+        right: 12px;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        border: none;
+        background: rgba(255, 255, 255, 0.9);
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--ink);
+      }
+      #lbHint {
+        position: absolute;
+        z-index: 2;
+        left: 50%;
+        transform: translateX(-50%);
+        bottom: calc(18px + var(--safe-b));
+        color: rgba(255, 255, 255, 0.85);
+        font-size: 12px;
+        background: rgba(0, 0, 0, 0.45);
+        padding: 8px 14px;
+        border-radius: 999px;
+      }
+      .hist-item img {
+        cursor: zoom-in;
       }
       #video.hidden {
         visibility: hidden;
@@ -734,6 +828,13 @@
       <div class="arrow" id="arrLeft">◀</div>
       <div class="arrow" id="arrRight">▶</div>
 
+      <div id="zoomBar">
+        <button id="btnZoomIn" aria-label="Zoom masuk">+</button>
+        <div class="lvl" id="zoomLvl">1.0x</div>
+        <button id="btnZoomOut" aria-label="Zoom keluar">−</button>
+        <button id="btnZoomReset" aria-label="Set semula zoom">⟲</button>
+      </div>
+
       <div id="countRing"><div class="fill"></div></div>
 
       <div id="leveler">
@@ -817,6 +918,13 @@
         <div class="t">Memuatkan AI...</div>
         <div class="s" id="loaderSub">Menyediakan enjin penglihatan komputer</div>
       </div>
+    </div>
+
+    <!-- ============ LIGHTBOX (zoom gambar sejarah) ============ -->
+    <div id="lightbox">
+      <img id="lbImg" alt="Rekod ukuran" />
+      <button id="lbClose" aria-label="Tutup">✕</button>
+      <div id="lbHint">Cubit / skrol untuk zoom · seret untuk gerak · ketuk dua kali reset</div>
     </div>
 
     <div id="toast"></div>
@@ -1003,6 +1111,9 @@
             img.src = it.img;
             img.alt = "Rekod ukuran " + fmt(it.t);
             img.loading = "lazy";
+            img.addEventListener("click", function () {
+              openLightbox(it.img);
+            });
             var m = document.createElement("div");
             m.className = "meta";
             m.textContent = fmt(it.t);
@@ -1603,36 +1714,24 @@ function preprocessViews(cv, src) {
           baseSnap.width = vw;
           baseSnap.height = vh;
 
-          // --- LANGKAH 1: RAKAM GAMBAR (stabilizer: pusat pada jack + ratakan) ---
+          // --- LANGKAH 1: RAKAM GAMBAR PENUH (tiada crop / tiada zoom) ---
+          // Nota: dahulu frame diputar + dizum untuk "stabilizer", menyebabkan
+          // bola di tepi terkeluar dari gambar. Sekarang frame dirakam 1:1.
           var jx = state.jack ? state.jack.x * vw : state.aim.x * vw;
           var jy = state.jack ? state.jack.y * vh : state.aim.y * vh;
-          var rot = 0;
-          if (state.gyroOK) {
-            rot = Math.max(-12, Math.min(12, state.gamma)) * (Math.PI / 180);
-          }
-          var shiftX = vw / 2 - jx,
-            shiftY = vh / 2 - jy;
-          var maxShift = 0.18;
-          shiftX = Math.max(-vw * maxShift, Math.min(vw * maxShift, shiftX));
-          shiftY = Math.max(-vh * maxShift, Math.min(vh * maxShift, shiftY));
-          var zoom = 1 + maxShift + Math.abs(rot) * 0.6;
 
           bctx.save();
           bctx.setTransform(1, 0, 0, 1, 0, 0);
           bctx.fillStyle = "#000";
           bctx.fillRect(0, 0, vw, vh);
           bctx.filter = "brightness(1.06) contrast(1.16) saturate(1.05)";
-          bctx.translate(vw / 2, vh / 2);
-          bctx.rotate(-rot);
-          bctx.scale(zoom, zoom);
-          bctx.translate(-vw / 2 + shiftX, -vh / 2 + shiftY);
           bctx.drawImage(video, 0, 0, vw, vh);
           bctx.restore();
           bctx.filter = "none";
 
-          var jr = (state.jack ? state.jack.r * vw : vw * 0.04) * zoom;
+          var jr = state.jack ? state.jack.r * vw : vw * 0.04;
           if (jr < vw * 0.02) jr = vw * 0.03;
-          snapMeta = { cx: vw / 2, cy: vh / 2, jr: jr };
+          snapMeta = { cx: jx, cy: jy, jr: jr };
 
           // Papar gambar yang disnap SERTA-MERTA (bukti gambar sudah diambil)
           fctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -1804,6 +1903,8 @@ function preprocessViews(cv, src) {
 
         function setResultMode(on) {
           $("crosshair").classList.toggle("off", on);
+          $("zoomBar").classList.toggle("on", on);
+          if (!on && typeof freezeZoom !== "undefined" && freezeZoom) freezeZoom.reset();
           if (on) {
             btnSnap.textContent = "Kamera Semula";
             btnSnap.classList.remove("primary");
@@ -1819,6 +1920,154 @@ function preprocessViews(cv, src) {
           if (state.busy) return; // sedang menganalisis gambar yang baru disnap
           if (state.frozen) resume();
           else doSnap();
+        });
+
+        /* ---------------- zoom & pan (gambar hasil + sejarah) ---------------- */
+        function attachZoomPan(el, opts) {
+          opts = opts || {};
+          var MIN = opts.min || 1,
+            MAX = opts.max || 8;
+          var z = 1,
+            ox = 0,
+            oy = 0;
+          var pointers = {},
+            last = null,
+            lastTap = 0;
+
+          function box() {
+            return el.getBoundingClientRect
+              ? (el.parentElement || el).getBoundingClientRect()
+              : { left: 0, top: 0, width: 1, height: 1 };
+          }
+          function clampOffset() {
+            var b = box();
+            var w = b.width,
+              h = b.height;
+            var minX = w - w * z,
+              minY = h - h * z;
+            if (z <= 1) {
+              ox = 0;
+              oy = 0;
+              return;
+            }
+            ox = Math.min(0, Math.max(minX, ox));
+            oy = Math.min(0, Math.max(minY, oy));
+          }
+          function apply() {
+            clampOffset();
+            el.style.transform = "translate(" + ox + "px," + oy + "px) scale(" + z + ")";
+            if (opts.onChange) opts.onChange(z);
+          }
+          function zoomAt(px, py, next) {
+            next = Math.max(MIN, Math.min(MAX, next));
+            var k = next / z;
+            ox = px - (px - ox) * k;
+            oy = py - (py - oy) * k;
+            z = next;
+            apply();
+          }
+          function zoomBy(factor) {
+            var b = box();
+            zoomAt(b.width / 2, b.height / 2, z * factor);
+          }
+          function reset() {
+            z = 1;
+            ox = 0;
+            oy = 0;
+            apply();
+          }
+
+          el.addEventListener(
+            "wheel",
+            function (e) {
+              e.preventDefault();
+              var b = box();
+              var dy = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 100 : 1);
+              zoomAt(e.clientX - b.left, e.clientY - b.top, z * Math.exp(-dy * 0.0018));
+            },
+            { passive: false }
+          );
+
+          el.addEventListener("pointerdown", function (e) {
+            el.setPointerCapture(e.pointerId);
+            pointers[e.pointerId] = { x: e.clientX, y: e.clientY };
+            var keys = Object.keys(pointers);
+            if (keys.length === 2) {
+              var a = pointers[keys[0]],
+                c = pointers[keys[1]];
+              last = { d: Math.hypot(a.x - c.x, a.y - c.y), mx: (a.x + c.x) / 2, my: (a.y + c.y) / 2 };
+            } else {
+              last = { x: e.clientX, y: e.clientY };
+              var now = Date.now();
+              if (now - lastTap < 300) {
+                var b = box();
+                if (z > 1.05) reset();
+                else zoomAt(e.clientX - b.left, e.clientY - b.top, 2.5);
+              }
+              lastTap = now;
+            }
+          });
+
+          el.addEventListener("pointermove", function (e) {
+            if (!pointers[e.pointerId]) return;
+            pointers[e.pointerId] = { x: e.clientX, y: e.clientY };
+            var keys = Object.keys(pointers);
+            var b = box();
+            if (keys.length >= 2 && last && last.d) {
+              var a = pointers[keys[0]],
+                c = pointers[keys[1]];
+              var d = Math.hypot(a.x - c.x, a.y - c.y);
+              var mx = (a.x + c.x) / 2,
+                my = (a.y + c.y) / 2;
+              if (d > 0 && last.d > 0) zoomAt(mx - b.left, my - b.top, z * (d / last.d));
+              ox += mx - last.mx;
+              oy += my - last.my;
+              last = { d: d, mx: mx, my: my };
+              apply();
+            } else if (last && z > 1) {
+              ox += e.clientX - last.x;
+              oy += e.clientY - last.y;
+              last = { x: e.clientX, y: e.clientY };
+              apply();
+            }
+          });
+
+          function up(e) {
+            delete pointers[e.pointerId];
+            var keys = Object.keys(pointers);
+            last = keys.length === 1 ? { x: pointers[keys[0]].x, y: pointers[keys[0]].y } : null;
+          }
+          el.addEventListener("pointerup", up);
+          el.addEventListener("pointercancel", up);
+
+          return { reset: reset, zoomBy: zoomBy, get: function () { return z; } };
+        }
+
+        var freezeZoom = attachZoomPan(freeze, {
+          onChange: function (z) {
+            $("zoomLvl").textContent = z.toFixed(1) + "x";
+          },
+        });
+        $("btnZoomIn").addEventListener("click", function () {
+          freezeZoom.zoomBy(1.4);
+        });
+        $("btnZoomOut").addEventListener("click", function () {
+          freezeZoom.zoomBy(1 / 1.4);
+        });
+        $("btnZoomReset").addEventListener("click", function () {
+          freezeZoom.reset();
+        });
+
+        var lightbox = $("lightbox"),
+          lbImg = $("lbImg");
+        var lbZoom = attachZoomPan(lbImg, {});
+        function openLightbox(src) {
+          lbImg.src = src;
+          lbZoom.reset();
+          lightbox.classList.add("open");
+        }
+        $("lbClose").addEventListener("click", function () {
+          lightbox.classList.remove("open");
         });
 
         /* ---------------- boot ---------------- */
