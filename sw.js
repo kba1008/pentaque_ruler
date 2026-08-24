@@ -1,6 +1,11 @@
 /* Petanque Referee Pro - Service Worker */
-const CACHE = "petanque-ref-pro-v6";
-const ASSETS = ["./", "./index.html", "./manifest.json", "./icon.png"];
+const CACHE = "petanque-ref-pro-v12";
+const ASSETS = [
+  "./",
+  "./index.html",
+  "./manifest.json",
+  "./icon.png",
+];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -22,10 +27,15 @@ self.addEventListener("activate", (event) => {
   );
 });
 
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") self.skipWaiting();
+});
+
 self.addEventListener("fetch", (event) => {
   const req = event.request;
   if (req.method !== "GET") return;
 
+  // Navigations: network first, fall back to cached shell (offline support).
   if (req.mode === "navigate") {
     event.respondWith(
       (async () => {
@@ -43,6 +53,28 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  // Fail teras app (html/js/json/css): network first supaya sentiasa terkini.
+  const url = new URL(req.url);
+  const isCore =
+    url.origin === self.location.origin &&
+    /\.(html|js|json|css)$/.test(url.pathname);
+  if (isCore) {
+    event.respondWith(
+      (async () => {
+        const cache = await caches.open(CACHE);
+        try {
+          const fresh = await fetch(req, { cache: "no-store" });
+          if (fresh && fresh.ok) cache.put(req, fresh.clone());
+          return fresh;
+        } catch (e) {
+          return (await cache.match(req)) || Response.error();
+        }
+      })(),
+    );
+    return;
+  }
+
+  // Lain-lain GET (imej/font/CDN): cache first, then network.
   event.respondWith(
     (async () => {
       const cache = await caches.open(CACHE);
