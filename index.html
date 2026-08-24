@@ -1229,7 +1229,7 @@ function preprocessViews(cv, src) {
           // Deduplikasi dibuat berdasarkan pusat, jadi boule rapat tidak digabung.
           if (!state.cvReady || !window.cv || !jackPx || jackPx.r <= 0) return [];
           var cv = window.cv;
-          var SW = Math.min(960, Math.max(720, canvasEl.width));
+          var SW = Math.min(640, Math.max(420, canvasEl.width));
           var sc = SW / canvasEl.width;
           var SH = Math.max(1, Math.round(canvasEl.height * sc));
           var tmp = document.createElement("canvas");
@@ -1247,7 +1247,7 @@ function preprocessViews(cv, src) {
 
           try {
             src = cv.imread(tmp);
-            views = preprocessViews(cv, src);
+            views = preprocessViews(cv, src).slice(0, 2);
             if (!views.length) return [];
 
             views.forEach(function (view, vi) {
@@ -1271,7 +1271,7 @@ function preprocessViews(cv, src) {
 
               // Pandangan utama lebih sensitif; pandangan sokongan lebih ketat
               // supaya tidak membanjiri dengan calon palsu.
-              var thresholds = vi === 0 ? [24, 17] : [26, 20];
+              var thresholds = vi === 0 ? [20] : [24];
               thresholds.forEach(function (voteThreshold) {
                 var circles = new cv.Mat();
                 mats.push(circles);
@@ -1282,7 +1282,8 @@ function preprocessViews(cv, src) {
                     90, voteThreshold, Math.round(minR), Math.round(maxR)
                   );
                 } catch (e) { return; }
-                for (var i = 0; i < circles.cols; i++) {
+                var lim = Math.min(circles.cols, 40);
+                for (var i = 0; i < lim; i++) {
                   raw.push({
                     sx: circles.data32F[i * 3],
                     sy: circles.data32F[i * 3 + 1],
@@ -1309,7 +1310,7 @@ function preprocessViews(cv, src) {
 
           function support(x, y, r) {
             if (r <= 2) return 0;
-            var N = 72, hit = 0, used = 0;
+            var N = 40, hit = 0, used = 0;
             for (var i = 0; i < N; i++) {
               var a = (i / N) * Math.PI * 2;
               var ca = Math.cos(a), sa = Math.sin(a);
@@ -1317,7 +1318,7 @@ function preprocessViews(cv, src) {
               if (px < 1 || py < 1 || px >= magW - 1 || py >= magH - 1) continue;
               used++;
               var best = 0;
-              for (var d = -3; d <= 3; d++) {
+              for (var d = -2; d <= 2; d++) {
                 var qx = Math.round(x + ca * (r + d));
                 var qy = Math.round(y + sa * (r + d));
                 if (qx < 0 || qy < 0 || qx >= magW || qy >= magH) continue;
@@ -1328,11 +1329,23 @@ function preprocessViews(cv, src) {
             return used < N * 0.45 ? 0 : hit / used;
           }
 
+          // Buang calon bertindih sebelum pemarkahan (jimat masa banyak).
+          var uniq = [];
+          raw.forEach(function (c) {
+            for (var u = 0; u < uniq.length; u++) {
+              var k = uniq[u];
+              if (Math.hypot(c.sx - k.sx, c.sy - k.sy) < Math.min(c.sr, k.sr) * 0.45 &&
+                  Math.abs(c.sr - k.sr) < k.sr * 0.28) return;
+            }
+            uniq.push(c);
+          });
+          raw = uniq;
+
           var cands = [];
           raw.forEach(function (c) {
             var bestR = c.sr, bestS = support(c.sx, c.sy, c.sr);
-            for (var k = -5; k <= 5; k++) {
-              var rr = c.sr * (1 + k * 0.025);
+            for (var k = -3; k <= 3; k++) {
+              var rr = c.sr * (1 + k * 0.04);
               if (rr < minR * 0.9 || rr > maxR * 1.1) continue;
               var s = support(c.sx, c.sy, rr);
               if (s > bestS) { bestS = s; bestR = rr; }
@@ -1361,7 +1374,7 @@ function preprocessViews(cv, src) {
             out.push(c);
           });
           out.sort(function (a, b) { return a.d - b.d; });
-          return out.slice(0, 12);
+          return out;
         }
 
         /* ---------------- arrows ---------------- */
@@ -1651,14 +1664,14 @@ function preprocessViews(cv, src) {
           fctx.strokeText("PETANQUE REFEREE PRO", fs * 0.7, fs * 1.2);
           fctx.fillText("PETANQUE REFEREE PRO", fs * 0.7, fs * 1.2);
           var verdict = boules.length
-            ? "Terdekat: #1 (" + ((boules[0].d * mmPerPx) / 10).toFixed(1) + " cm)"
+            ? boules.length + " boule · Terdekat: #1 (" + ((boules[0].d * mmPerPx) / 10).toFixed(1) + " cm)"
             : "Tiada boule dikesan di sekeliling Jack";
           fctx.strokeText(verdict, fs * 0.7, fs * 2.7);
           fctx.fillText(verdict, fs * 0.7, fs * 2.7);
 
           setStatus(
             boules.length
-              ? "Keputusan Dianalisis! " + boules.length + " boule dipetakan"
+              ? "Siap! " + boules.length + " boule dikesan dalam gambar"
               : "Gambar diambil — tiada boule dikesan",
             "done"
           );
