@@ -1335,8 +1335,31 @@
 
         /* ---------------- snap + stabilizer + analysis ---------------- */
         function doSnap() {
-          if (state.frozen || state.busy || !state.camReady) return;
+          if (state.frozen) { resume(); return; }
+          if (state.busy) return;
+          if (!state.camReady || !video.videoWidth || video.readyState < 2) {
+            toast("Kamera belum sedia \u2014 benarkan akses kamera & cuba lagi.");
+            setStatus("Kamera belum sedia", "guide");
+            return;
+          }
           state.busy = true;
+          try {
+            snapCore();
+          } catch (err) {
+            try { console.error("snap error", err); } catch (e) {}
+            toast("Ralat analisis \u2014 cuba semula.");
+            setStatus("Ralat analisis \u2014 tekan Snap semula", "guide");
+            state.frozen = false;
+            freeze.style.display = "none";
+            video.classList.remove("hidden");
+            setResultMode(false);
+          } finally {
+            state.busy = false;
+            state.steadySince = 0;
+          }
+        }
+
+        function snapCore() {
           countRing.classList.remove("on");
           state.steadySince = 0;
           setStatus("Menstabil & menganalisis...", "guide");
@@ -1385,6 +1408,7 @@
           if (!isFinite(jr) || jr < vw * 0.012) jr = Math.max(vw * 0.02, jrFallback);
 
           // --- AUTO-MAP boules around the jack ---
+          if (!state.cvReady) toast("Enjin AI belum sedia \u2014 gambar disimpan tanpa auto-tag.");
           var boules = detectBoules(freeze, { x: cx, y: cy, r: jr });
           var mmPerPx = 30 / (2 * jr); // official jack ~30 mm diameter
 
@@ -1457,7 +1481,7 @@
             };
             var cm = Math.max(0, b.d * mmPerPx) / 10;
             tag(i + 1 + " · " + cm.toFixed(1) + " cm", mid.x, mid.y, col);
-            tag("#" + (i + 1), b.x, b.y - b.r - fs * 1.1, col);
+            tag(isClosest ? "#1 TERDEKAT" : "#" + (i + 1), b.x, b.y - b.r - fs * 1.1, col);
           });
 
           // header + verdict
@@ -1476,7 +1500,6 @@
           freeze.style.display = "block";
           video.classList.add("hidden");
           state.frozen = true;
-          state.busy = false;
 
           setStatus(
             boules.length
@@ -1581,6 +1604,14 @@
             navigator.serviceWorker.register("./sw.js").catch(function () {});
           });
         }
+
+        window.addEventListener("error", function (ev) {
+          try { console.error("global", ev.message); } catch (e) {}
+          state.busy = false;
+        });
+        window.addEventListener("unhandledrejection", function () {
+          state.busy = false;
+        });
 
         boot();
       })();
