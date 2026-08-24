@@ -1,5 +1,5 @@
 /* Petanque Referee Pro - Service Worker */
-const CACHE = "petanque-ref-pro-v14";
+const CACHE = "petanque-ref-pro-v15";
 const ASSETS = [
   "./",
   "./index.html",
